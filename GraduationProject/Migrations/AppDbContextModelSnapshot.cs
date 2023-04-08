@@ -22,6 +22,111 @@ namespace GraduationProject.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
+            modelBuilder.Entity("GraduationProject.Models.CartItem", b =>
+                {
+                    b.Property<string>("CustomerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte>("Quantity")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("CustomerId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.Issue", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("AdminId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RespondDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(15)")
+                        .HasDefaultValue("Submitted");
+
+                    b.Property<DateTime>("SubmitDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.ToTable("Issues");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.Order", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("CustomerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime?>("ReceiptDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(15)")
+                        .HasDefaultValue("Ordered");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.OrderItem", b =>
+                {
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte>("Quantity")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("OrderId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("OrderItems");
+                });
+
             modelBuilder.Entity("GraduationProject.Models.Product", b =>
                 {
                     b.Property<string>("Id")
@@ -118,6 +223,22 @@ namespace GraduationProject.Migrations
                     b.ToTable("Review");
                 });
 
+            modelBuilder.Entity("GraduationProject.Models.UpdateProduct", b =>
+                {
+                    b.Property<string>("CurrentProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProductUpdateId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("CurrentProductId", "ProductUpdateId");
+
+                    b.HasIndex("ProductUpdateId")
+                        .IsUnique();
+
+                    b.ToTable("ProdutUpdates");
+                });
+
             modelBuilder.Entity("GraduationProject.Models.User", b =>
                 {
                     b.Property<string>("Id")
@@ -196,6 +317,27 @@ namespace GraduationProject.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.WishlistItem", b =>
+                {
+                    b.Property<string>("CustomerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte>("Quantity")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("CustomerId", "ProductId", "Name");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("WishlistItems");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -331,6 +473,64 @@ namespace GraduationProject.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("GraduationProject.Models.CartItem", b =>
+                {
+                    b.HasOne("GraduationProject.Models.User", "Customer")
+                        .WithMany("CartItems")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GraduationProject.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.Issue", b =>
+                {
+                    b.HasOne("GraduationProject.Models.User", "RespondAdmin")
+                        .WithMany("Issues")
+                        .HasForeignKey("AdminId");
+
+                    b.Navigation("RespondAdmin");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.Order", b =>
+                {
+                    b.HasOne("GraduationProject.Models.User", "Customer")
+                        .WithMany("Orders")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.OrderItem", b =>
+                {
+                    b.HasOne("GraduationProject.Models.Order", "Order")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GraduationProject.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("GraduationProject.Models.Rating", b =>
                 {
                     b.HasOne("GraduationProject.Models.Product", "Product")
@@ -367,6 +567,44 @@ namespace GraduationProject.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.UpdateProduct", b =>
+                {
+                    b.HasOne("GraduationProject.Models.Product", "CurrentProduct")
+                        .WithMany()
+                        .HasForeignKey("CurrentProductId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("GraduationProject.Models.Product", "ProductUpdate")
+                        .WithOne()
+                        .HasForeignKey("GraduationProject.Models.UpdateProduct", "ProductUpdateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CurrentProduct");
+
+                    b.Navigation("ProductUpdate");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.WishlistItem", b =>
+                {
+                    b.HasOne("GraduationProject.Models.User", "Customer")
+                        .WithMany("WishlistItems")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GraduationProject.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -420,6 +658,11 @@ namespace GraduationProject.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GraduationProject.Models.Order", b =>
+                {
+                    b.Navigation("OrderItems");
+                });
+
             modelBuilder.Entity("GraduationProject.Models.Product", b =>
                 {
                     b.Navigation("Ratings");
@@ -429,9 +672,17 @@ namespace GraduationProject.Migrations
 
             modelBuilder.Entity("GraduationProject.Models.User", b =>
                 {
+                    b.Navigation("CartItems");
+
+                    b.Navigation("Issues");
+
+                    b.Navigation("Orders");
+
                     b.Navigation("Ratings");
 
                     b.Navigation("Reviews");
+
+                    b.Navigation("WishlistItems");
                 });
 #pragma warning restore 612, 618
         }
