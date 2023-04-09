@@ -13,7 +13,7 @@ namespace GraduationProject.Utils
 				jsonFilePath = Path.Combine(Environment.CurrentDirectory,
 											"Data",
 											"InitialSeed",
-											"users8.json");
+											"users9.json");
 			}
 
 			// Parsing the json file and creating the appropriate objects.
@@ -25,7 +25,7 @@ namespace GraduationProject.Utils
 				// Create an empty list to hold all the users.
 				List<UserCreateDto> users = new List<UserCreateDto>();
 
-				int counter = 0;
+				// int counter = 0;
 				foreach (var user in extractedUsers)
 				{
 					string id = user.Value.id;
@@ -41,9 +41,9 @@ namespace GraduationProject.Utils
 					UserCreateDto newUser = new UserCreateDto { Id = id, FirstName = firstName, LastName = lastName, UserName = username, Birthdate = DateTime.Parse(birthdate), Gender = gender, Email = email, PhoneNumber = phone };
 					users.Add(newUser);
 
-					// Below code is for debugging.
-					if (counter++ >= 10)
-						break;
+					// // Below code is for debugging.
+					// if (counter++ >= 10)
+					// 	break;
 				}
 
 				return users;
