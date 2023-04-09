@@ -82,7 +82,7 @@ namespace GraduationProject.Controllers
                 user.EmailConfirmed = true;
                 
                 var result = await _userManager.CreateAsync(user, "A1" + user.Email); // Helpers.GeneratePassword(_userManager)
-                Console.WriteLine($"{user.FirstName} {user.LastName}: {user.Id}");
+                // Console.WriteLine($"{user.FirstName} {user.LastName}: {user.Id}");
                 if (!result.Succeeded)
                 {
                     foreach (var error in result.Errors)
