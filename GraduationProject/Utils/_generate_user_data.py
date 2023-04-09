@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd, numpy as np
 import os, faker, json
 
 # Initialize data generator
@@ -20,17 +20,23 @@ df = pd.read_csv(os.path.join(os.path.dirname(__file__), "..", "Data", "InitialS
 # print(time()-start)
 
 unique_users = df['userID'].unique()
+with open(os.path.join(os.path.dirname(__file__), "..", "Data", "InitialSeed", 'missingUsers.json'), 'r') as f:
+    review_user_data = json.load(f)
 
+unique_users = np.unique(np.append(unique_users, list(review_user_data.values())))
 users_dict = dict()
 
+print("Generating user names...")
 usernames = set()
 while len(usernames) < len(unique_users):
     usernames.add(fake.user_name())
 
+print("Generating user emails...")
 emails = set()
 while len(emails) < len(unique_users):
     emails.add(fake.email())
 
+print("Starting generating user data...")
 for i in range(len(unique_users)):
     user_profile = fake.profile()
     
@@ -59,7 +65,8 @@ for i in range(len(unique_users)):
     # if i==5:
     #     break
 
-with open(os.path.join(os.path.dirname(__file__), "..", "Data", "InitialSeed", "users8.json"), "w") as users_file:
+print("Saving generating user data to a json file...")
+with open(os.path.join(os.path.dirname(__file__), "..", "Data", "InitialSeed", "users9.json"), "w") as users_file:
     json.dump(users_dict, users_file)
 
 # Id
