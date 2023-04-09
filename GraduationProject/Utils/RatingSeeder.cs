@@ -25,7 +25,7 @@ namespace GraduationProject.Utils
 				// Create an empty list to hold all the Ratings.
 				List<RatingDto> ratings = new List<RatingDto>();
 
-				int counter = 0;
+				// int counter = 0;
                 Random random = new Random();
 				foreach (var key in extractedRatings["userID"])
 				{
@@ -40,11 +40,11 @@ namespace GraduationProject.Utils
 
 					ratings.Add(rating);
 					
-					Console.WriteLine($"User Id:\t{rating.UserId}\nProduct Id:\t{rating.ProductId}\nRating Value\t{rating.RatingValue}\nTimestamp::\t{rating.Timestamp}\n");
+					// Console.WriteLine($"User Id:\t{rating.UserId}\nProduct Id:\t{rating.ProductId}\nRating Value\t{rating.RatingValue}\nTimestamp::\t{rating.Timestamp}\n");
 
-					// Below code is for debugging.
-					if (counter++ >= 10)
-						break;
+					// // Below code is for debugging.
+					// if (counter++ >= 10)
+					// 	break;
 				}
 
 				return ratings;
