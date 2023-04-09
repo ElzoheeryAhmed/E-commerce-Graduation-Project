@@ -15,10 +15,7 @@ namespace GraduationProject.Utils
 											"Data",
 											"InitialSeed",
 											"ClothingReviews.json");
-			}
-            
-            else
-            {
+			} else {
                 jsonFilePath = Path.Combine(Environment.CurrentDirectory,
 											"Data",
 											"InitialSeed",
@@ -34,7 +31,7 @@ namespace GraduationProject.Utils
 				// Create an empty list to hold all the Reviews.
 				List<ReviewDto> reviews = new List<ReviewDto>();
 
-				int counter = 0;
+				// int counter = 0;
 				foreach (var key in extractedReviews["reviewerID"])
 				{
 					// Parsing the inconsistent reviewDates.
@@ -55,11 +52,11 @@ namespace GraduationProject.Utils
 					};
 
 					reviews.Add(review);
-					Console.WriteLine($"User Id:\t{review.UserId}\nProduct Id:\t{review.ProductId}\nReview Text\t{review.ReviewText.Substring(0, Math.Min(review.ReviewText.Length, 20))}\nTimestamp::\t{review.Timestamp}\n");
+					// Console.WriteLine($"User Id:\t{review.UserId}\nProduct Id:\t{review.ProductId}\nReview Text\t{review.ReviewText.Substring(0, Math.Min(review.ReviewText.Length, 20))}\nTimestamp::\t{review.Timestamp}\n");
 
 					// Below code is for debugging.
-					if (counter++ >= 10)
-						break;
+					// if (counter++ >= 10)
+						// break;
 				}
 
 				return reviews;
