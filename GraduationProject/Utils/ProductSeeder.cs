@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using GraduationProject.Models.Dto;
 using GraduationProject.Models.ModelEnums;
 using Newtonsoft.Json;
@@ -23,13 +23,12 @@ namespace GraduationProject.Utils
 			using (StreamReader r = new StreamReader(jsonFilePath))
 			{
 				// Parse the JSON into a dynamic object.
-				dynamic extractedProduts = JsonConvert.DeserializeObject(r.ReadToEnd());
+				dynamic extractedProducts = JsonConvert.DeserializeObject(r.ReadToEnd());
 				
 				// Create an empty list to hold all the products.
 				List<ProductDto> products = new List<ProductDto>();
 				
-				int counter = 0;
-				foreach (var key in extractedProduts.asin)
+				foreach (var key in extractedProducts.asin)
 				{
 					// // Parsing the price. If the price is in this format ("2.98 - $3.98"), then we have a price and a discount.
 					// // The discount is the difference between the two numbers.
@@ -40,10 +39,38 @@ namespace GraduationProject.Utils
 					
 					
 					// Next fields requires extra deserialization.
-					string[] categories = JToken.Parse(extractedProduts.category[key.Name].Value.ToString()).ToObject<string[]>();
-					string[] descriptions = JToken.Parse(extractedProduts.description[key.Name].Value.ToString()).ToObject<string[]>();
-					string[] features = JToken.Parse(extractedProduts.feature[key.Name].Value.ToString()).ToObject<string[]>();
-					string[] highResImageURLs = JToken.Parse(extractedProduts.imageURLHighRes[key.Name].Value.ToString()).ToObject<string[]>();
+					string[] categories = JToken.Parse(extractedProducts.category[key.Name].Value.ToString()).ToObject<string[]>();
+					
+					// Parsing if the description does not contain any nulls: string[] descriptions = JToken.Parse(extractedProducts.description[key.Name].Value.ToString()).ToObject<string[]>();
+					// Description can take null values in the dataset, thus we need to be extra careful when parsing it.
+					string description = extractedProducts.description[key.Name].Value;
+					if (description != null) {
+						try {
+							description = string.Join("", JToken.Parse(description).ToObject<string[]>()
+												.Where(s => !string.IsNullOrEmpty(s)).ToList());
+						} catch (JsonReaderException e) {
+							description = description.Replace("\\x", "\\\\x"); // replace "\x" with "\\x"
+							description = string.Join("", JToken.Parse(description).ToObject<string[]>()
+												.Where(s => !string.IsNullOrEmpty(s)).ToList());
+						}
+					} else
+						description = "NODATA";
+					
+					
+					string features = extractedProducts.description[key.Name].Value;
+					if (features != null) {
+						try {
+							features = string.Join(" || ", JToken.Parse(features).ToObject<string[]>()
+												.Where(s => !string.IsNullOrEmpty(s)).ToList());
+						} catch (JsonReaderException e) {
+							features = features.Replace("\\x", "\\\\x"); // replace "\x" with "\\x"
+							features = string.Join(" || ", JToken.Parse(features).ToObject<string[]>()
+												.Where(s => !string.IsNullOrEmpty(s)).ToList());
+						}
+					} else
+						features = "UnKnown";
+					
+					string[] highResImageURLs = JToken.Parse(extractedProducts.imageURLHighRes[key.Name].Value.ToString()).ToObject<string[]>();
 					
 					// Parsing addedDates.
 					jsonFilePath = Path.Combine(Environment.CurrentDirectory,
@@ -57,8 +84,9 @@ namespace GraduationProject.Utils
 					ProductDto product = new ProductDto
 					{
 						Id = key.Value.ToString(),
-						Title = extractedProduts.title[key.Name].ToString().Trim(),
-						Description = string.Join(". ", descriptions.Where(s => !string.IsNullOrEmpty(s))),
+						Title = extractedProducts.title[key.Name].ToString().Trim(),
+						// Description = string.Join(". ", descriptions.Where(s => !string.IsNullOrEmpty(s))),
+						Description = description,
 						Price = (decimal)(random.NextDouble() * 900 + 100),
 						Discount = 0,
 						
@@ -67,22 +95,16 @@ namespace GraduationProject.Utils
 						
                         Status = ProductStatus.Current,
 						DateAdded = DateTime.ParseExact(dateDict[key.Value.ToString()], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), // DateTime.Now, // The oldest datetime among the 150794 products is: 971136000 -> 2000-10-10 02:00:00
-						Brand = extractedProduts.brand[key.Name].ToString().Trim(),
-						VoteCount = int.Parse(extractedProduts.vote_count[key.Name].ToString().Trim()),
-						VoteAverage = double.Parse(extractedProduts.vote_average[key.Name].ToString().Trim()),
-						// MainCategory = extractedProduts.main_cat[key.Name].ToString().Trim(),
+						Brand = extractedProducts.brand[key.Name].ToString().Trim(),
+						VoteCount = int.Parse(extractedProducts.vote_count[key.Name].ToString().Trim()),
+						VoteAverage = double.Parse(extractedProducts.vote_average[key.Name].ToString().Trim()),
+						// MainCategory = extractedProducts.main_cat[key.Name].ToString().Trim(),
 						Categories = string.Join(" || ", categories.Where(s => !string.IsNullOrEmpty(s)).ToList()),
-						Features = string.Join(" || ", features.Where(s => !string.IsNullOrEmpty(s)).ToList()),
+						Features = features,
 						HighResImageURLs = string.Join(" || ", highResImageURLs.Where(s => !string.IsNullOrEmpty(s)).ToList()),
 					};
 					
 					products.Add(product);
-					
-					// Console.WriteLine($"Id:\t\t{product.Id}\nTitle:\t\t{product.Title}\nPrice:\t\t{product.Price}\nDate Added:\t{product.DateAdded}\n");
-					
-					// Below code is for debugging.
-					// if (counter++ >= 10)
-					// 	break;
 				}
 				
 				return products;
