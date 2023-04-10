@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
+using System.Diagnostics;
 using AutoMapper;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
@@ -73,26 +71,40 @@ namespace GraduationProject.Controllers
         
         [HttpGet]
 		[Route("users/seed")]
-		public async Task<IActionResult> SeedDatabase()
+		public async Task<IActionResult> SeedDatabase(int start, int end)
 		{
-			List<UserCreateDto> userDtos = UserSeeder.Seed(null);
-			foreach (var userDto in userDtos)
-            {
-                User user = _mapper.Map<User>(userDto);
-                user.EmailConfirmed = true;
+            List<UserCreateDto> userDtos;
+            Stopwatch sw;
+
+			int file_index = start;
+            while (file_index <= end) {
+                Console.Write($"Seeding file {file_index}... ");
                 
-                var result = await _userManager.CreateAsync(user, "A1" + user.Email); // Helpers.GeneratePassword(_userManager)
-                // Console.WriteLine($"{user.FirstName} {user.LastName}: {user.Id}");
-                if (!result.Succeeded)
+                sw = Stopwatch.StartNew();
+                
+                userDtos = UserSeeder.Seed(file_index++);
+                
+                foreach (var userDto in userDtos)
                 {
-                    foreach (var error in result.Errors)
-                    {
-                        _logger.LogError(error.Description);
-                        ModelState.AddModelError("", error.Description);
-                    }
+                    User user = _mapper.Map<User>(userDto);
+                    user.EmailConfirmed = true;
                     
-                    return Problem($"An error occurred while seeding user data.", statusCode: 500);
+                    var result = await _userManager.CreateAsync(user, "A1" + user.Email); // Helpers.GeneratePassword(_userManager)
+                    // Console.WriteLine($"{user.FirstName} {user.LastName}: {user.Id}");
+                    if (!result.Succeeded)
+                    {
+                        foreach (var error in result.Errors)
+                        {
+                            _logger.LogError(error.Description);
+                            ModelState.AddModelError("", error.Description);
+                        }
+                        
+                        return Problem($"An error occurred while seeding user data.", statusCode: 500);
+                    }
                 }
+                
+                // await _unitOfWork.Save();
+                Console.WriteLine("Finished in " + sw.ElapsedMilliseconds/1000 + " sec");
             }
             
 			// string output = "";
@@ -100,7 +112,7 @@ namespace GraduationProject.Controllers
 			// 	output += user.FirstName + ", ";
 
 			// _unitOfWork.Save();
-			return Ok("Data added successfully. "); // + output );
+			return Ok("Data added successfully."); // + output );
 		}
     }
 }
