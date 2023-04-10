@@ -69,14 +69,14 @@ namespace GraduationProject.Controllers
 		{
 			List<ReviewDto> reviews = ReviewSeeder.Seed(0);
 			await _unitOfWork.Reviews.InsertRangeAsync(_mapper.Map<List<Review>>(reviews));
-			string output = "";
-			foreach (var review in reviews)
-			{
-				output += review.ReviewText.ToString() + ", ";
-			}
+			//string output = "";
+			//foreach (var review in reviews)
+			//{
+			//	output += review.ReviewText.ToString() + ", ";
+			//}
 
 			await _unitOfWork.Save();
-			return Ok("Data added successfully: " + output );
+			return Ok("Data added successfully."); //  + output 
 		}
         
         [HttpGet]
