@@ -1,66 +1,71 @@
-using System.Globalization;
-using GraduationProject.Models.Dto;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace GraduationProject.Utils
 {
-    public class ReviewSeeder
+    public class UserReviewSeeder
     {
-        public static List<ReviewDto> Seed(int fileSelector=0)
+        public static List<string> FindMissingUsers()
 		{
-            string jsonFilePath;
-			if (fileSelector == 0)
-			{
-				jsonFilePath = Path.Combine(Environment.CurrentDirectory,
-											"Data",
-											"InitialSeed",
-											"ClothingReviews.json");
-			} else {
-                jsonFilePath = Path.Combine(Environment.CurrentDirectory,
-											"Data",
-											"InitialSeed",
-											"Home_KitchenReviews.json");
+            // Parsing addedDates.
+            string jsonFilePath = Path.Combine(Environment.CurrentDirectory,
+                                                "Data",
+                                                "InitialSeed",
+                                                "users8.json");
+            
+            var userDict = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string,object>>>(File.ReadAllText(jsonFilePath));
+            List<string> userIds = new List<string>();
+            
+            foreach (var user in userDict) {
+                // Console.WriteLine($"User Number: {user.Key}, User Id: " + userDict[user.Key]["id"]);
+                userIds.Add(userDict[user.Key]["id"].ToString());
             }
             
-			// Parsing the json file and creating the appropriate objects.
-			using (StreamReader r = new StreamReader(jsonFilePath))
-			{
-				// Parse the JSON into a dynamic object.
-				Dictionary<string, Dictionary<string, string>> extractedReviews = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(r.ReadToEnd());
+            jsonFilePath = Path.Combine(Environment.CurrentDirectory,
+                                        "Data",
+                                        "InitialSeed",
+                                        "ClothingReviews.json");
+            
+            var extractedReviews = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonFilePath));
+            
+            List<string> missingUsers = new List<string>();
+            foreach (var key in extractedReviews["reviewerID"]) {
+                if (!userIds.Contains(key.Value.ToString())) {
+                    missingUsers.Add(key.Value.ToString());
+                }
+            }
+            
+            
+            jsonFilePath = Path.Combine(Environment.CurrentDirectory,
+                                        "Data",
+                                        "InitialSeed",
+                                        "Home_KitchenReviews.json");
 
-				// Create an empty list to hold all the Reviews.
-				List<ReviewDto> reviews = new List<ReviewDto>();
-
-				// int counter = 0;
-				foreach (var key in extractedReviews["reviewerID"])
-				{
-					// Parsing the inconsistent reviewDates.
-					// DateTime reviewDate = DateTime.ParseExact(extractedReviews["reviewTime"][key.Key], "MM dd, yyyy", CultureInfo.InvariantCulture);
-					DateTime reviewDate;
-					string[] formats = { "MM d, yyyy", "M d, yyyy", "MM dd, yyyy", "M dd, yyyy" };
-					
-					DateTime.TryParseExact(extractedReviews["reviewTime"][key.Key],
-											formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out reviewDate);
-					
-					// Creating a Rating object.
-					ReviewDto review = new ReviewDto
-					{
-						UserId = key.Value.ToString(),
-						ProductId = extractedReviews["asin"][key.Key].ToString().Trim(),
-						ReviewText = extractedReviews["reviewText"][key.Key] ?? "",
-						Timestamp = reviewDate,
-					};
-
-					reviews.Add(review);
-					// Console.WriteLine($"User Id:\t{review.UserId}\nProduct Id:\t{review.ProductId}\nReview Text\t{review.ReviewText.Substring(0, Math.Min(review.ReviewText.Length, 20))}\nTimestamp::\t{review.Timestamp}\n");
-
-					// Below code is for debugging.
-					// if (counter++ >= 10)
-						// break;
-				}
-
-				return reviews;
-			}
-		}
+            extractedReviews = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(jsonFilePath));
+            foreach (var key in extractedReviews["reviewerID"]) {
+                if (!userIds.Contains(key.Value.ToString())) {
+                    missingUsers.Add(key.Value.ToString());
+                }
+            }
+            
+            
+            Dictionary<string, string> missingUsersDict = new Dictionary<string, string>();
+            for (int i = 0; i < missingUsers.Count; i++) {
+                missingUsersDict.Add(i.ToString(), missingUsers[i]);
+            }
+            
+            // Dump missing users to a json file where the keys are indexes that starts from 0.
+            jsonFilePath = Path.Combine(Environment.CurrentDirectory,
+                                        "Data",
+                                        "InitialSeed",
+                                        "missingUsers.json");
+            
+            File.WriteAllText(jsonFilePath, JsonConvert.SerializeObject(missingUsersDict));
+            
+            return new List<string>();
+        }
     }
 }
