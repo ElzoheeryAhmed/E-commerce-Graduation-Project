@@ -44,7 +44,7 @@ builder.Services.AddSwaggerGen();
 // Configuring Entity Framework Core.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlServerOptions => sqlServerOptions.CommandTimeout(420));
 });
 
 // Configuring Identity.
@@ -78,6 +78,7 @@ builder.Services.AddAuthentication(); //options =>
 var app = builder.Build();
 
 Log.Information("Application is started");
+Console.WriteLine("Application is started");
 
 
 // Configure the HTTP request pipeline.
