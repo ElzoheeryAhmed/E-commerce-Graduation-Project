@@ -47,7 +47,7 @@ namespace GraduationProject.Utils
 					{
 						UserId = key.Value.ToString(),
 						ProductId = extractedReviews["asin"][key.Key].ToString().Trim(),
-						ReviewText = extractedReviews["reviewText"][key.Key],
+						ReviewText = extractedReviews["reviewText"][key.Key] ?? "",
 						Timestamp = reviewDate,
 					};
 
