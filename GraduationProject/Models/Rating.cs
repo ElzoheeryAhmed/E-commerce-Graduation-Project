@@ -1,4 +1,6 @@
 
+using System.ComponentModel.DataAnnotations;
+
 namespace GraduationProject.Models
 {
     /// <summary>
@@ -12,6 +14,8 @@ namespace GraduationProject.Models
         public string ProductId { get; set; }
         public Product Product { get; set; }
         
+        [Required]
+        [Range(0, 5, ErrorMessage = "Rating value must be between 0 and 5.")]
         public double RatingValue { get; set; }
         public DateTime Timestamp { get; set; }
     }
