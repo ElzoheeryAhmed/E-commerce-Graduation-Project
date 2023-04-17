@@ -1,8 +1,10 @@
-﻿using GraduationProject.Data;
+using GraduationProject.Data;
 using GraduationProject.IRepository;
+using GraduationProject.Models.Dto;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Linq.Expressions;
+using X.PagedList;
 
 namespace GraduationProject.Repository
 {
@@ -11,21 +13,22 @@ namespace GraduationProject.Repository
 		private readonly AppDbContext _context;
 		private readonly DbSet<T> _db;
 
-		public GenericRepository(AppDbContext context)
-		{
+		public GenericRepository(AppDbContext context) {
 			_context = context;
 			_db = _context.Set<T>();
 		}
-
-		public async Task<T> GetByAsync(Expression<Func<T, bool>> expression = null, List<string> includes = null)
-		{
+		
+		
+		public async Task<bool> existsAsync(Expression<Func<T, bool>> expression) {
+			return await _db.AnyAsync(expression);
+		}
+		
+		public async Task<T> GetByAsync(Expression<Func<T, bool>> expression = null, List<string> includes = null) {
 			// Create an IQueryable<T> object from the _db property, which represents the database table for type T.
 			IQueryable<T> query = _db;
 
-			if (includes != null)
-			{
-				foreach (var includeProperty in includes)
-				{
+			if (includes != null) {
+				foreach (var includeProperty in includes) {
 					// If the includes parameter is not null, load the related entities using the Include method.
 					query = query.Include(includeProperty);
 				}
@@ -37,54 +40,59 @@ namespace GraduationProject.Repository
 			return await query.AsNoTracking().FirstOrDefaultAsync(expression);
 		}
 
-		public async Task<IList<T>> GetAllAsync(Expression<Func<T, bool>> expression = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, List<string> includes = null)
-		{
+		public async Task<IList<T>> GetAllAsync(Expression<Func<T, bool>> expression = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, List<string> includes = null) {
 			IQueryable<T> query = _db;
 
-			if (expression != null)
-			{
+			if (expression != null) {
 				query = query.Where(expression);
 			}
 
-			if (includes != null)
-			{
-				foreach (var includeProperty in includes)
-				{
+			if (includes != null) {
+				foreach (var includeProperty in includes) {
 					query = query.Include(includeProperty);
 				}
 			}
 
-			if (orderBy != null)
-			{
+			if (orderBy != null) {
 				query = orderBy(query);
 			}
 
 			return await query.AsNoTracking().ToListAsync();
 		}
 
-		public async Task InsertAsync(T entity)
-		{
+		public async Task<IPagedList<T>> GetPagedList(PagingFilter pagingfilter, Expression<Func<T, bool>> expression = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, List<string> includes = null) {
+            IQueryable<T> query = _db;
+
+			if (expression != null) {
+				query = query.Where(expression);
+			}
+
+			if (includes != null) {
+				foreach (var includeProperty in includes) {
+					query = query.Include(includeProperty);
+				}
+			}
+
+			if (orderBy != null) {
+				query = orderBy(query);
+			}
+
+			return await query.AsNoTracking().ToPagedListAsync(pagingfilter.PageNumber, pagingfilter.PageSize);
+        }
+		
+		public async Task InsertAsync(T entity) {
 			await _db.AddAsync(entity);
 		}
 
-		public async Task InsertRangeAsync(IEnumerable<T> entities)
-		{
+		public async Task InsertRangeAsync(IEnumerable<T> entities) {
 			await _db.AddRangeAsync(entities);
 		}
 
-		public async Task<bool> DeleteAsync(int id)
-		{
-			if (id < 0)
-			{
-				Log.Error($"InvalidId: Id values must be greater than or equal to 0.");
-				return false;
-			}
+		public async Task<bool> DeleteAsync(Expression<Func<T, bool>> expression) {
+			var entity = await _db.AsNoTracking().FirstOrDefaultAsync(expression);
 
-			var entity = await _db.FindAsync(id);
-
-			if (entity == null)
-			{
-				Log.Error($"EntityNotFound: could don't find an entity with the provided id ({id}) when executing 'DeleteAsync'");
+			if (entity == null) {
+				Log.Error($"EntityNotFound: could don't find an entity that matches the given expression when executing 'DeleteAsync'");
 				return false;
 			}
 
@@ -92,13 +100,11 @@ namespace GraduationProject.Repository
 			return true;
 		}
 
-		public void DeleteRangeAsync(IEnumerable<T> entities)
-		{
+		public void DeleteRangeAsync(IEnumerable<T> entities) {
 			_db.RemoveRange(entities);
 		}
 
-		public void UpdateAsync(T entity)
-		{
+		public void Update(T entity) {
 			// This line attaches the entity to the _db context. Attaching an entity to a context allows the context to track changes to the entity and detect when it should be updated in the database.
 			_db.Attach(entity);
 
