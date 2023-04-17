@@ -1,38 +1,51 @@
-using System.Globalization;
+﻿using System.Globalization;
+using AutoMapper;
+using GraduationProject.Models;
 using GraduationProject.Models.Dto;
 using GraduationProject.Models.ModelEnums;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Serilog;
 
 namespace GraduationProject.Utils
 {
+	public class SeedProductDto {
+		public List<ProductDto> Products { get; set; } = new List<ProductDto>();
+		public List<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
+		public List<string> Brands { get; set; } = new List<string>();
+	}
+	
 	public static class ProductSeeder
 	{
-		public static List<ProductDto> Seed(string? jsonFilePath)
+		public static SeedProductDto Seed(string? jsonFilePath, IMapper _mapper)
 		{
-			if (jsonFilePath == null)
-			{
+			if (jsonFilePath == null) {
 				jsonFilePath = Path.Combine(Environment.CurrentDirectory,
 											"Data",
 											"InitialSeed",
 											"ProductsMetadata.json");
 			}
 			
+			// Create an empty list to hold all the products.
+			List<ProductDto> products = new List<ProductDto>();
+			
+			Dictionary<string, int> productCategories = new Dictionary<string, int>();
+			Dictionary<string, int> brands = new Dictionary<string, int>();
+			
+			productCategories.Add("Generic", 0);
+			brands.Add("Generic", 0);
+			
 			// Parsing the json file and creating the appropriate objects.
-			using (StreamReader r = new StreamReader(jsonFilePath))
-			{
+			using (StreamReader r = new StreamReader(jsonFilePath)) {
 				// Parse the JSON into a dynamic object.
 				dynamic extractedProducts = JsonConvert.DeserializeObject(r.ReadToEnd());
 				
-				// Create an empty list to hold all the products.
-				List<ProductDto> products = new List<ProductDto>();
-				
+				int tempCategoryIndex = 1;
+				int tempBrandIndex = 1;
 				foreach (var key in extractedProducts.asin)
 				{
 					// // Parsing the price. If the price is in this format ("2.98 - $3.98"), then we have a price and a discount.
 					// // The discount is the difference between the two numbers.
-					// string[] parsedPrice = extractedProduts.price[key.Name].ToString().Split('-');
+					// string[] parsedPrice = extractedProducts.price[key.Name].ToString().Split('-');
 					// decimal price = decimal.Parse(parsedPrice[0].Trim());
 					// decimal discount = parsedPrice.Length > 1 ? 0 : decimal.Parse(parsedPrice[0].Trim()) - price;
 					Random random = new Random();
@@ -40,6 +53,29 @@ namespace GraduationProject.Utils
 					
 					// Next fields requires extra deserialization.
 					string[] categories = JToken.Parse(extractedProducts.category[key.Name].Value.ToString()).ToObject<string[]>();
+					
+					// Filtering duplicate categories.
+					HashSet<int> tempCategoryIds = new HashSet<int>();
+					for (int i=0; i < categories.Length; i++)
+					{
+						string category = categories[i];
+						if (!string.IsNullOrEmpty(category)) {
+							if (productCategories.ContainsKey(category)) {
+								tempCategoryIds.Add(productCategories[category]);
+							} else {
+								productCategories.Add(category, tempCategoryIndex);
+								tempCategoryIds.Add(tempCategoryIndex++);
+							}
+						}
+					}
+					
+					List<ProductCategory> categoryIds = new List<ProductCategory>();
+					if (tempCategoryIds.Count == 0) {
+						categoryIds.Add(new ProductCategory() { Id = 0 });
+					}
+					else {
+						categoryIds.AddRange(tempCategoryIds.Select(id => new ProductCategory() { Id = id }));
+					}
 					
 					// Parsing if the description does not contain any nulls: string[] descriptions = JToken.Parse(extractedProducts.description[key.Name].Value.ToString()).ToObject<string[]>();
 					// Description can take null values in the dataset, thus we need to be extra careful when parsing it.
@@ -62,7 +98,7 @@ namespace GraduationProject.Utils
 						try {
 							features = string.Join(" || ", JToken.Parse(features).ToObject<string[]>()
 												.Where(s => !string.IsNullOrEmpty(s)).ToList());
-						} catch (JsonReaderException e) {
+						} catch (JsonReaderException) {
 							features = features.Replace("\\x", "\\\\x"); // replace "\x" with "\\x"
 							features = string.Join(" || ", JToken.Parse(features).ToObject<string[]>()
 												.Where(s => !string.IsNullOrEmpty(s)).ToList());
@@ -80,6 +116,18 @@ namespace GraduationProject.Utils
 					
 					var dateDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(jsonFilePath));
 					
+					string tempBrand = extractedProducts.brand[key.Name].ToString().Trim();
+					int brandId = 0; // 0 = Generic product (doesn't have a brand).
+					if (!string.IsNullOrEmpty(tempBrand)) {
+						if (brands.ContainsKey(tempBrand)) {
+							brandId = brands[tempBrand];
+						}
+						else {
+							brands.Add(tempBrand, tempBrandIndex);
+							brandId = tempBrandIndex++;
+						}
+					}
+					
 					// Creating a Product object.
 					ProductDto product = new ProductDto
 					{
@@ -95,19 +143,36 @@ namespace GraduationProject.Utils
 						
                         Status = ProductStatus.Current,
 						DateAdded = DateTime.ParseExact(dateDict[key.Value.ToString()], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), // DateTime.Now, // The oldest datetime among the 150794 products is: 971136000 -> 2000-10-10 02:00:00
-						Brand = extractedProducts.brand[key.Name].ToString().Trim(),
+						BrandId = brandId,
 						VoteCount = int.Parse(extractedProducts.vote_count[key.Name].ToString().Trim()),
 						VoteAverage = double.Parse(extractedProducts.vote_average[key.Name].ToString().Trim()),
 						// MainCategory = extractedProducts.main_cat[key.Name].ToString().Trim(),
-						Categories = string.Join(" || ", categories.Where(s => !string.IsNullOrEmpty(s)).ToList()),
+						ProductCategories = _mapper.Map<List<ProductCategory>, List<ProductCategoryDto>>(categoryIds), // string.Join(" || ", categories.Where(s => !string.IsNullOrEmpty(s)).ToList())
 						Features = features,
-						HighResImageURLs = string.Join(" || ", highResImageURLs.Where(s => !string.IsNullOrEmpty(s)).ToList()),
+						HighResImageURLs = string.Join(" || ", highResImageURLs.Where(s => !string.IsNullOrEmpty(s)).ToList())
 					};
 					
 					products.Add(product);
 				}
 				
-				return products;
+				List<ProductCategory> productCategoriesList = new List<ProductCategory>();
+				
+				foreach (var productCategory in productCategories.OrderBy(pc => pc.Value)) {
+					productCategoriesList.Add(new ProductCategory {Name = productCategory.Key});
+				}
+				
+				List<string> brandNames = new List<string>();
+				foreach (var brandName in brands.OrderBy(pc => pc.Value)) {
+					brandNames.Add(brandName.Key);
+				}
+				
+				SeedProductDto seedProductDto = new SeedProductDto {
+					Products = products,
+					Brands = brandNames,
+					ProductCategories = productCategoriesList,
+				};
+				
+				return seedProductDto;
 			}
 		}
 	}
