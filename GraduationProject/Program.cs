@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
+Console.WriteLine("Setting up the backend server...");
+
 // To get any configuration strings from the appsettings.json file.
 IConfiguration _config = new ConfigurationBuilder()
 	.SetBasePath(Directory.GetCurrentDirectory())
@@ -23,7 +25,7 @@ Log.Logger = new LoggerConfiguration()
 		path: _config.GetValue<string>("LogFilePath"),
 		outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:1j}{NewLine}{Exception}",
 		rollingInterval: RollingInterval.Day,
-		restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information
+		restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Warning
 	).CreateLogger();
 
 builder.Logging.ClearProviders();
@@ -44,7 +46,7 @@ builder.Services.AddSwaggerGen();
 // Configuring Entity Framework Core.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlServerOptions => sqlServerOptions.CommandTimeout(420));
+	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlServerOptions => sqlServerOptions.CommandTimeout(3600));
 });
 
 // Configuring Identity.
@@ -77,8 +79,8 @@ builder.Services.AddAuthentication(); //options =>
 
 var app = builder.Build();
 
-Log.Information("Application is started");
-Console.WriteLine("Application is started");
+Log.Information("The backend server has started.");
+Console.WriteLine("The backend server has started.");
 
 
 // Configure the HTTP request pipeline.
@@ -96,4 +98,4 @@ app.MapControllers();
 
 app.Run();
 
-Log.Information("Application is stopped.");
+Log.Information("The backend server has stopped.");
