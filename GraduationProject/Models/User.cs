@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 
 namespace GraduationProject.Models
 {
@@ -9,18 +9,12 @@ namespace GraduationProject.Models
 		public string Gender { get; set; }
 		public DateTime Birthdate { get; set; }
 		
-		public ICollection<Rating> Ratings { get; set; }
-		public ICollection<Review> Reviews { get; set; }
-        public ICollection<Issue> Issues { get; set; }
-        public ICollection<Order> Orders { get; set; }
-        public ICollection<CartItem> CartItems { get; set; }
-        public ICollection<WishlistItem> WishlistItems { get; set; }
-
-
-        public User()
-		{
-			this.Ratings = new List<Rating>();
-			this.Reviews = new List<Review>();
-		}
+		public ICollection<Rating> Ratings { get; set; } = new HashSet<Rating>();
+		public ICollection<Review> Reviews { get; set; } = new HashSet<Review>();
+		
+		public ICollection<Issue> Issues { get; set; }
+        	public ICollection<Order> Orders { get; set; }
+        	public ICollection<CartItem> CartItems { get; set; }
+        	public ICollection<WishlistItem> WishlistItems { get; set; }
 	}
 }
