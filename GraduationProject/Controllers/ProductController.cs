@@ -1,80 +1,118 @@
+using System.Linq.Expressions;
 using AutoMapper;
+using GraduationProject.Controllers.Helpers;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
 using GraduationProject.Models.ModelEnums;
-using Microsoft.AspNetCore.Identity;
+using GraduationProject.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace GraduationProject.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class ProductController : ControllerBase
-	{
+	public class ProductController : ControllerBase {
 		private readonly IUnitOfWork _unitOfWork;
-        private readonly UserManager<User> _userManager;
 		private readonly ILogger<ProductController> _logger;
 		private readonly IMapper _mapper;
+		private readonly HashSet<string> _fields = new HashSet<string>(typeof(Product).GetProperties().Select(p => p.Name));
 
-		public ProductController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<ProductController> logger, IMapper mapper) {
+		public ProductController(IUnitOfWork unitOfWork, ILogger<ProductController> logger, IMapper mapper) { // UserManager<User> userManager,
 			_unitOfWork = unitOfWork;
-            _userManager = userManager;
 			_logger = logger;
 			_mapper = mapper;
 		}
-
+		
 		[HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
+		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetProducts([FromQuery] PagingFilter pagingFilter) {
+		public async Task<IActionResult> GetProducts([FromQuery] PagingFilter pagingFilter, [FromQuery] string? onlyIncludeFields = null, [FromQuery] string? fieldsToExclude = null, [FromQuery] int? filterByBrand = null, [FromQuery] string? orderBy = null) {
+			if (!string.IsNullOrWhiteSpace(onlyIncludeFields) && !string.IsNullOrWhiteSpace(fieldsToExclude)) {
+                return BadRequest("Either use 'onlyIncludeFields' or 'fieldsToExclude', not both.");
+            }
+			
 			try {
-				var products = await _unitOfWork.Products.GetPagedList(pagingFilter, null, null, new List<string> { "ProductCategories" });
+				List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(onlyIncludeFields);
 				
-				// This is not necessary as the ProductCategories property is already populated by the GetPagedList method.
-				// foreach (var product in products) {
-				// 	product.ProductCategories.AddRange((await _unitOfWork.ProductCategoryJoins.GetAllAsync(pcj => pcj.ProductId == product.Id)).Select(pcj => new ProductCategory() { Id = pcj.ProductCategoryId }).ToList());
-				// }
-
-				return Ok(_mapper.Map<IList<ProductDto>>(products));
+				
+				List<Expression<Func<Product, bool>>> filterExpression = new List<Expression<Func<Product, bool>>>() {p => p.Status == ProductStatus.Current};
+				
+				if (filterByBrand != null && filterByBrand != 0) {
+					filterExpression.Add(p => p.Brand.Id == filterByBrand);
+				}
+				
+				
+				var products = await _unitOfWork.Products.GetAllAsync( filterExpression, pagingFilter, entitiesToInclude.Count == 0, entitiesToInclude, orderBy);
+				
+				if (fieldsToExclude != null) {
+					if (!fieldsToExclude.Contains("BrandId"))
+						fieldsToExclude += ",BrandId";
+				}
+				
+				else {
+					fieldsToExclude = "BrandId";
+				}
+				
+				// Does not return {Brand, Reviews, Ratings}
+				var json = JsonConvert.SerializeObject(_mapper.Map<IList<ProductDtoWithBrand>>(products), Formatting.Indented,
+					new GenericFieldBasedJsonConverter<ProductDtoWithBrand>(_fields, onlyIncludeFields, fieldsToExclude));
+				
+				return Ok(json);
 			}
+			
 			catch (Exception ex) {
-				_logger.LogError(ex, $"Something went wrong when trying to access all the products data.");
-				return StatusCode(500, "Internal Server Error.");
+				_logger.LogError(ex, $"Something went wrong when trying to access proudcts data.");
+				return StatusCode(500, "Internal Server Error. Something went wrong when trying to access proudcts data.");
 			}
 		}
 
 		[HttpGet("{id}")]
 		[ActionName(nameof(GetProduct))]
 		[ProducesResponseType(StatusCodes.Status200OK)]
+		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetProduct(string id) {
+		public async Task<IActionResult> GetProduct(string id, [FromQuery] string? onlyIncludeFields = null, [FromQuery] string? fieldsToExclude = null) {
+			if (!string.IsNullOrWhiteSpace(onlyIncludeFields) && !string.IsNullOrWhiteSpace(fieldsToExclude)) {
+                return BadRequest("Either use 'onlyIncludeFields' or 'fieldsToExclude', not both.");
+            }
+			
 			try {
-				var product = await _unitOfWork.Products.GetByAsync(p => p.Id == id, new List<string> { "ProductCategories" });
+				
+				List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(onlyIncludeFields);
+				
+				var product = await _unitOfWork.Products.GetByAsync(p => p.Id == id, entitiesToInclude.Count == 0, entitiesToInclude);
+				
 				
 				if (product == null) {
-					_logger.LogWarning($"Failed GET attempt in {nameof(GetProduct)}. Could not find a product with id={id}.");
+					_logger.LogInformation($"Failed GET attempt in {nameof(GetProduct)}. Could not find a product with id={id}.");
 					
 					return NotFound($"Could not find a product with id={id}.");
 				}
 				
-				// This is not necessary as the ProductCategories property is already populated by the GetByAsync method.
-				// var productCategoryJoin = await _unitOfWork.ProductCategoryJoins.GetAllAsync(pcj => pcj.ProductId == product.Id);
-				// var productDtos = _mapper.Map<ProductDto>(product);
-				// productDtos.ProductCategories = _mapper.Map<List<ProductCategory>, List<ProductCategoryDto>>(
-				// 	(await _unitOfWork.ProductCategories.GetAllAsync(pc => productCategoryJoin.Select(pcj => pcj.ProductCategoryId).Contains(pc.Id))).ToList());
-				// product.ProductCategories = productCategoryJoin.Select(pcj => new ProductCategory() { Id = pcj.ProductCategoryId }).ToList();
+				if (fieldsToExclude != null) {
+					if (!fieldsToExclude.Contains("BrandId"))
+						fieldsToExclude += ",BrandId";
+				}
 				
-				return Ok(_mapper.Map<ProductDto>(product));
+				else {
+					fieldsToExclude = "BrandId";
+				}
+				
+				var json = JsonConvert.SerializeObject(_mapper.Map<ProductDtoWithBrand>(product), Formatting.Indented,
+					new GenericFieldBasedJsonConverter<ProductDtoWithBrand>(_fields, onlyIncludeFields, fieldsToExclude));
+				
+				return Ok(json);
 			}
 			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to access the data of the product with id={id}.");
-				return StatusCode(500, "Internal Server Error.");
+				return StatusCode(500, $"Internal Server Error. Something went wrong when trying to access the data of the product with id={id}.");
 			}
 		}
-		
-		
+
 		[HttpPost]
 		[ProducesResponseType(StatusCodes.Status201Created)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -86,31 +124,49 @@ namespace GraduationProject.Controllers
 				return BadRequest(ModelState);
 			}
 			
+			if (productDto.ProductCategories.Contains(0)) {
+				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. '0' cannot be used as a product category identifier.");
+				
+				return BadRequest("'0' cannot be used as a product category identifier.");
+			}
+			
+			if (productDto.ProductCategories.Count != productDto.ProductCategories.Distinct().Count()) {
+				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. Duplicate product category identifiers are not allowed.");
+				
+				return BadRequest("Duplicate product category identifiers are not allowed.");
+			}
+			
+			if (productDto.ProductCategories.Count == 0) {
+				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. Product category identifiers cannot be left empty.");
+				
+				return BadRequest("Product category identifiers cannot be left empty.");
+			}
+			
+			if (productDto.BrandId == 0) {
+				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. Brand identifier cannot be left empty or take '0' as value.");
+				
+				return BadRequest("'0' cannot be passed as a brand identifier.");
+			}
+			
 			try {
 				var product = _mapper.Map<Product>(productDto);
 				
-				// No need to check as the Id is auto-generated.
-				// var exists = await _unitOfWork.Products.existsAsync(p => p.Id == product.Id);
-				// if (exists) {
-				// 	_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. A product with same key already exists.");
-					
-				// 	return BadRequest("A product with same key already exists.");
-				// }
-				
 				product.Status = ProductStatus.Added;
-				List<int> productCategoryIds = (await _unitOfWork.ProductCategories.GetAllAsync(pc => productDto.ProductCategories.Select(pcDto => pcDto.Name).Contains(pc.Name))).Select(pc => pc.Id).ToList();
-				product.ProductCategories = null;
+				
 				await _unitOfWork.Products.InsertAsync(product);
 				
-				
-				List<ProductCategoryJoin> productCategoryJoins = productCategoryIds.Select(pcId => new ProductCategoryJoin() { ProductId = product.Id, ProductCategoryId = pcId }).ToList();
-				
-				await _unitOfWork.ProductCategoryJoins.InsertRangeAsync(productCategoryJoins);
-				// if (productCategoryIds != null && productCategoryIds.Count > 0)
-				
 				await _unitOfWork.Save();
-				product.ProductCategories = productCategoryIds.Select(pcId => new ProductCategory() { Id = pcId }).ToList();
-				return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+				
+				if (product == null) {
+					_logger.LogWarning($"Failed POST attempt in {nameof(CreateProduct)}. Could not create a new product.");
+					
+					return BadRequest("Could not create a new product.");
+				}
+				
+				var json = JsonConvert.SerializeObject(_mapper.Map<ProductDto>(product), Formatting.Indented,
+					new GenericFieldBasedJsonConverter<ProductDto>(_fields, "", "VoteCount,VoteAverage,Ratings,Reviews"));
+				
+				return Ok(json);
 			}
 			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to create a new product in the {nameof(CreateProduct)}.");
@@ -120,7 +176,6 @@ namespace GraduationProject.Controllers
 		}
 		
 		[HttpPut("{id}")]
-		// [ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -131,11 +186,31 @@ namespace GraduationProject.Controllers
 				return BadRequest(ModelState);
 			}
 			
-			try {
-				var product = await _unitOfWork.Products.GetByAsync(p => p.Id == id);
+			if (productDto.ProductCategories.Contains(0)) {
+				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. '0' cannot be used as a product category identifier.");
 				
-				// var product = _mapper.Map<Product>(productDto);
-				// var exists = await _unitOfWork.Products.existsAsync(p => p.Id == product.Id);
+				return BadRequest("'0' cannot be used as a product category identifier.");
+			}
+			
+			if (productDto.ProductCategories.Count != productDto.ProductCategories.Distinct().Count()) {
+				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateProduct)}. Duplicate product category identifiers are not allowed.");
+				
+				return BadRequest("Duplicate product category identifiers are not allowed.");
+			}
+			
+			// Request body cannot be an empty object.
+			if (!DataValidationHelper.HasNonNullOrDefaultProperties(productDto)) {
+				_logger.LogInformation($"Invalid PUT attempt in {nameof(UpdateProduct)}. The request body is empty.");
+				
+				return BadRequest("The request body is empty.");
+			}
+			
+			try {
+				var product = await _unitOfWork.Products.GetByAsync(p => p.Id == id, false, new List<string> { "ProductCategories.ProductCategory", "Brand" });
+				
+				// This is necessary to avoid the error "The property 'Product.Id' is part of a key and so cannot be modified or marked as modified. To change the principal of an existing entity with an identifying foreign key, first delete the dependent and invoke 'SaveChanges', and then associate the dependent with the new principal."
+				// In other words, to prevent updating the existing product, we need to detach it from the context.
+				_unitOfWork.Context.ChangeTracker.Clear();
 				
 				if (product == null) {
 					_logger.LogInformation($"Invalid PUT attempt in {nameof(UpdateProduct)}. A product with same key doesn't exist.");
@@ -143,30 +218,44 @@ namespace GraduationProject.Controllers
 					return NotFound("A product with same key doesn't exist.");
 				}
 				
+				// Changing the status of the new updated product entry.
 				product.Status = ProductStatus.Updated;
+				product.DateAdded = DateTime.Now;
+				
+				// Zero values are not ignored when mapping. To keep the existing product numeric value type data,
+				// check if the productDto fields are zero, and if so, set them to the existing product data.
+				ProductHelper<ProductUpdateDto>.KeepOriginalIfNewIsZero(productDto, product);
+				
+				// If the productDto does not contain any product categories, keep the existing product categories.
+				if (productDto.ProductCategories.Count == 0)
+					productDto.ProductCategories = product.ProductCategories.Select(pc => pc.ProductCategoryId).ToList();
+				
+				// Mapping the productDto to the product, overwriting existing fields. Any null fields in the productDto will be ignored when mapping.
 				_mapper.Map(productDto, product);
 				
-				// Updating the existing product.
+				// Updating the existing product. The BL requires that any update request is added as a new product.
 				// _unitOfWork.Products.Update(product);
 				// await _unitOfWork.Save();
 				// return NoContent();
-				
 				
 				string currentproductId = product.Id;
 				
 				// This allows the database to generate a new Id.
 				product.Id = null;
 				
-				product.DateAdded = DateTime.Now;
-
+				// This allows the database to populate the Brand fields itself.
+				product.Brand = null;
+				
 				// Creating a new product with the updated data and a new key.
 				await _unitOfWork.Products.InsertAsync(product);
 				string newProductId = product.Id; // Get the generated Id of the new product.
 				
+				// Inserting the product update record.
 				await _unitOfWork.ProductUpdates.InsertAsync(new ProductUpdate {CurrentProductId = currentproductId, UpdatedProductId = newProductId});
+				
 				await _unitOfWork.Save();
 				
-				return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+				return CreatedAtAction(nameof(GetProduct), new { id = newProductId }, product);
 			}
 			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to update a product in the {nameof(UpdateProduct)}.");
@@ -176,7 +265,6 @@ namespace GraduationProject.Controllers
 		}
 		
 		[HttpDelete("{id}")]
-		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -188,7 +276,7 @@ namespace GraduationProject.Controllers
 			}
 			
 			try {
-				var product = await _unitOfWork.Products.GetByAsync(p => p.Id == id);
+				var product = await _unitOfWork.Products.GetByAsync(p => p.Id == id, false);
 				
 				if (product == null) {
 					_logger.LogInformation($"Invalid DELETE attempt in {nameof(DeleteProduct)}. A product with id={id} doesn't exist.");
@@ -197,10 +285,10 @@ namespace GraduationProject.Controllers
 				}
 				
 				product.Status = ProductStatus.Deleted;
-				_unitOfWork.Products.Update(product);
+				
 				await _unitOfWork.Save();
 				
-				return NoContent();
+				return Ok(product);
 			}
 			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to delete a product in the {nameof(DeleteProduct)}.");
