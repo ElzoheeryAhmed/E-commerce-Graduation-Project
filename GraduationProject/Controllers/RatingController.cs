@@ -9,15 +9,13 @@ namespace GraduationProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class RatingController : ControllerBase
-    {
+    public class RatingController : ControllerBase {
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<User> _userManager;
 		private readonly ILogger<RatingController> _logger;
 		private readonly IMapper _mapper;
 
-		public RatingController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<RatingController> logger, IMapper mapper)
-		{
+		public RatingController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<RatingController> logger, IMapper mapper) {
 			_unitOfWork = unitOfWork;
             _userManager = userManager;
 			_logger = logger;
@@ -29,12 +27,11 @@ namespace GraduationProject.Controllers
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 		public async Task<IActionResult> GerRatings([FromQuery] PagingFilter pagingFilter) {
 			try {
-				var ratings = await _unitOfWork.Ratings.GetPagedList(pagingFilter);
+				var ratings = await _unitOfWork.Ratings.GetAllAsync(pagingFilter: pagingFilter);
 
 				return Ok(_mapper.Map<IList<RatingDto>>(ratings));
 			}
-			catch (Exception ex)
-			{
+			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to access all the rating data.");
 				return StatusCode(500, "Internal Server Error.");
 			}
@@ -45,10 +42,8 @@ namespace GraduationProject.Controllers
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetRating(string userId, string productId)
-		{
-			try
-			{
+		public async Task<IActionResult> GetRating(string userId, string productId) {
+			try {
 				var rating = await _unitOfWork.Ratings.GetByAsync(r => r.UserId == userId && r.ProductId == productId);
 				
 				if (rating == null) {
@@ -59,8 +54,8 @@ namespace GraduationProject.Controllers
 				
 				return Ok(_mapper.Map<RatingDto>(rating));
 			}
-			catch (Exception ex)
-			{
+			
+			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to access the data of the rating with userId={userId} and productId={productId}.");
 				
 				return StatusCode(500, "Internal Server Error.");
