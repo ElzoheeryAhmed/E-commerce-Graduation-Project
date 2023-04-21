@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace GraduationProject.Migrations
 {
-    public partial class Prouct_ProuctCategories_ProductBrands_InitialCreate : Migration
+    public partial class Prouct_ProuctCategories_Brands_InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -50,6 +50,7 @@ namespace GraduationProject.Migrations
                     VoteAverage = table.Column<double>(type: "float", nullable: false),
                     Features = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     HighResImageURLs = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
                     BrandId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -72,7 +73,7 @@ namespace GraduationProject.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductCategoryJoins", x => new { x.ProductCategoryId, x.ProductId });
+                    table.PrimaryKey("PK_ProductCategoryJoins", x => new { x.ProductId, x.ProductCategoryId });
                     table.ForeignKey(
                         name: "FK_ProductCategoryJoins_ProductCategories_ProductCategoryId",
                         column: x => x.ProductCategoryId,
@@ -88,9 +89,9 @@ namespace GraduationProject.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductCategoryJoins_ProductId",
+                name: "IX_ProductCategoryJoins_ProductCategoryId",
                 table: "ProductCategoryJoins",
-                column: "ProductId");
+                column: "ProductCategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_BrandId",
