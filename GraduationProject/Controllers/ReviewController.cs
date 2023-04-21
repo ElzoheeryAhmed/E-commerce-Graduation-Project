@@ -9,15 +9,13 @@ namespace GraduationProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ReviewController : ControllerBase
-    {
+    public class ReviewController : ControllerBase {
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<User> _userManager;
 		private readonly ILogger<ReviewController> _logger;
 		private readonly IMapper _mapper;
 
-		public ReviewController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<ReviewController> logger, IMapper mapper)
-		{
+		public ReviewController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<ReviewController> logger, IMapper mapper) {
 			_unitOfWork = unitOfWork;
             _userManager = userManager;
 			_logger = logger;
@@ -29,7 +27,7 @@ namespace GraduationProject.Controllers
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 		public async Task<IActionResult> GetReviews([FromQuery] PagingFilter pagingFilter) {
 			try {
-				var reviews = await _unitOfWork.Reviews.GetPagedList(pagingFilter);
+				var reviews = await _unitOfWork.Reviews.GetAllAsync(pagingFilter: pagingFilter);
 
 				return Ok(_mapper.Map<IList<ReviewDto>>(reviews));
 			}
