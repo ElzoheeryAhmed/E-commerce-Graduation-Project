@@ -7,10 +7,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace GraduationProject.Data
 {
-	public class AppDbContext : IdentityDbContext<User>
-	{
-		public AppDbContext(DbContextOptions contextOptions): base(contextOptions)
-		{}
+	public class AppDbContext : IdentityDbContext<User> {
+		public AppDbContext(DbContextOptions contextOptions): base(contextOptions) {}
 
 		public DbSet<User> Users { get; set; }
 		public DbSet<Product> Products { get; set; }
@@ -28,13 +26,16 @@ namespace GraduationProject.Data
 		public DbSet<CartItem> CartItems { get; set; }
 		public DbSet<WishlistItem> WishlistItems { get; set; }
 
-		protected override void OnModelCreating(ModelBuilder builder)
-		{
+		protected override void OnModelCreating(ModelBuilder builder) {
 			base.OnModelCreating(builder);
 			
 			builder.Entity<Product>()
 				.Property(p => p.DateAdded)
 				.HasDefaultValueSql("getdate()");
+				
+				// We could also use these annotations:
+				// [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+				// [DefaultValue("getutcdate()")]
 			
 			builder.Entity<Product>()
 				.Property(p => p.Discount)
@@ -60,18 +61,23 @@ namespace GraduationProject.Data
 				.WithMany(pb => pb.Products)
 				.HasForeignKey(p => p.BrandId);
 			
-			builder.Entity<Product>()
-				.HasMany(p => p.ProductCategories)
-				.WithMany(pc => pc.Products)
-				.UsingEntity<ProductCategoryJoin>(
-					l => l.HasOne<ProductCategory>().WithMany().HasForeignKey(p => p.ProductCategoryId).HasPrincipalKey(p => p.Id),
-					r => r.HasOne<Product>().WithMany().HasForeignKey(pc => pc.ProductId).HasPrincipalKey(p => p.Id),
-					j => j.HasKey("ProductId", "ProductCategoryId")
-				);
-			
 			builder.Entity<ProductCategory>()
 				.Property(pc => pc.Id)
 				.UseIdentityColumn(seed: 0, increment: 1);
+			
+			builder.Entity<ProductCategoryJoin>()
+				.HasKey(pcj => new { pcj.ProductId, pcj.ProductCategoryId });
+
+			builder.Entity<ProductCategoryJoin>()
+				.HasOne(pcj => pcj.Product)
+				.WithMany(p => p.ProductCategories)
+				.HasForeignKey(pcj => pcj.ProductId);
+
+			builder.Entity<ProductCategoryJoin>()
+				.HasOne(pcj => pcj.ProductCategory)
+				.WithMany(pc => pc.Products)
+				.HasForeignKey(pcj => pcj.ProductCategoryId);
+			
 			
 			builder.Entity<Brand>()
 				.Property(b => b.Id)
@@ -124,8 +130,7 @@ namespace GraduationProject.Data
 			new WishlistItemEntityTypeConfiguration().Configure(builder.Entity<WishlistItem>());
 		}
 		
-		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-		{
+		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
 			// TODO: Remove this method before deploying the backend.
 			optionsBuilder.EnableSensitiveDataLogging();
 		}
