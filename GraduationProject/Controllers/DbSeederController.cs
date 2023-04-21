@@ -61,15 +61,8 @@ namespace GraduationProject.Controllers
                     }
                 }
                 
-                // await _unitOfWork.Save();
                 Console.WriteLine("Finished in " + sw.ElapsedMilliseconds/1000 + " sec");
             }
-            
-			// string output = "";
-			// foreach (var user in userDtos)
-			// 	output += user.FirstName + ", ";
-            
-			// _unitOfWork.Save();
 			return Ok("Data added successfully."); // + output );
 		}
         
@@ -94,9 +87,7 @@ namespace GraduationProject.Controllers
 			
 			Console.WriteLine("Inserting products data into the Db...");
 			List<Product> products = _mapper.Map<List<Product>>(seedProductDto.Products);
-			// bulkConfig.IncludeGraph = true;
 			await _unitOfWork.Context.BulkInsertAsync(products, bulkConfig);
-			// bulkConfig.IncludeGraph = false;
 			
 			Console.WriteLine("Adding records to the ProductCategoryJoin table...");
 			List<ProductCategoryJoin> productCategoryJoins = new List<ProductCategoryJoin>();
@@ -113,12 +104,6 @@ namespace GraduationProject.Controllers
 			await _unitOfWork.Context.BulkInsertAsync(productCategoryJoins, bulkConfig);
 			
             await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
-			
-            // string output = "";
-            // foreach (var product in products)
-            // {
-            // 	output += product.Title;
-            // }
             
 			Console.WriteLine("Finished seeding products data.");
             return Ok("Data added successfully."); //  + output
@@ -134,12 +119,6 @@ namespace GraduationProject.Controllers
 			BulkConfig bulkConfig = new BulkConfig() { BulkCopyTimeout = QUERY_TIMEOUT };
 			await _unitOfWork.Context.BulkInsertAsync(_mapper.Map<List<Rating>>(ratings), bulkConfig);
 			
-			// string output = "";
-			// foreach (var rating in ratings)
-			// {
-			// 	output += rating.RatingValue.ToString() + ", ";
-			// }
-			
 			await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
 			
 			return Ok("Data added successfully."); // + output );
@@ -153,12 +132,6 @@ namespace GraduationProject.Controllers
 			
 			BulkConfig bulkConfig = new BulkConfig() { BulkCopyTimeout = QUERY_TIMEOUT };
 			await _unitOfWork.Context.BulkInsertAsync(_mapper.Map<List<Review>>(reviews), bulkConfig);
-			
-			//string output = "";
-			//foreach (var review in reviews)
-			//{
-			//	output += review.ReviewText.ToString() + ", ";
-			//}
             
 			await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
 			return Ok("Data added successfully."); //  + output 
@@ -172,12 +145,6 @@ namespace GraduationProject.Controllers
 			
 			BulkConfig bulkConfig = new BulkConfig() { BulkCopyTimeout = QUERY_TIMEOUT};
 			await _unitOfWork.Context.BulkInsertAsync(_mapper.Map<List<Review>>(reviews), bulkConfig);
-			
-            // string output = "";
-			// foreach (var review in reviews)
-			// {
-			// 	output += review.ReviewText.ToString() + ", ";
-			// }
 
 			await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
 			return Ok("Data added successfully."); // " + output );
