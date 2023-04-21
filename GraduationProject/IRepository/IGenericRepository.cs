@@ -4,14 +4,13 @@ using X.PagedList;
 
 namespace GraduationProject.IRepository
 {
-	public interface IGenericRepository<T> where T : class
-	{
+	public interface IGenericRepository<TSource> where TSource : class {
 		/// <summary>
 		/// Checks if an entity exists in the database that matches the given expression.
 		/// </summary>
 		/// <param name="expression"></param>
 		/// <returns></returns>
-		Task<bool> existsAsync(Expression<Func<T, bool>> expression);
+		Task<bool> existsAsync(Expression<Func<TSource, bool>> expression);
 		
 		/// <summary>
 		/// Get the object of the specified type from the database if it matches the given expression.
@@ -19,69 +18,101 @@ namespace GraduationProject.IRepository
 		/// <param name="expression"></param>
 		/// <param name="includes"></param>
 		/// <returns></returns>
-		Task<T> GetByAsync(Expression<Func<T, bool>> expression = null, List<string> includes = null);
+		Task<TSource>? GetByAsync(
+			Expression<Func<TSource, bool>> expression = null,
+			bool asNoTracking = false,
+			List<string>? includes = null
+		);
 
 		/// <summary>
-		/// Get all objects of the specified type from the database, filter them with `expression` if not null, and order them by `orderBy` if not null.
+		/// Get one or more pages of objects if `PagingFilter` is not null otherwise all the objects of the specified type from the database.
+		/// Filter them with `expression` if not null, and order them by `orderBy` if not null.
 		/// </summary>
 		/// <param name="expression"></param>
-		/// <param name="orderBy"></param>
+		/// <param name="pagingFilter"></param>
+		/// <param name="asNoTracking"></param>
 		/// <param name="includes"></param>
+		/// <param name="orderBy"></param>
 		/// <returns></returns>
-		Task<IList<T>> GetAllAsync(
-			Expression<Func<T, bool>> expression = null,
-			Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-			List<string> includes = null
+		Task<IEnumerable<TSource>>? GetAllAsync(
+			List<Expression<Func<TSource, bool>>>? expression = null,
+			IPagingFilter? pagingFilter=null,
+			bool asNoTracking = false,
+			List<string>? includeEntities = null,
+			string? orderBy = null
+			// Func<IQueryable<TSource>, IOrderedQueryable<TSource>>? orderBy = null
 		);
 		
+
 		/// <summary>
-		/// Get one or more pages of objects of the specified type from the database, filter them with `expression` if not null, and order them by `orderBy` if not null.
+		/// Get the field that matches the selection criteria.
 		/// </summary>
-		/// <param name="pagingFilter"></param>
 		/// <param name="expression"></param>
-		/// <param name="orderBy"></param>
-		/// <param name="includes"></param>
+		/// <param name="fieldSelector"></param>
+		/// <param name="asNoTracking"></param>
+		/// <param name="includeEntity"></param>
 		/// <returns></returns>
-		Task<IPagedList<T>> GetPagedList(
-			PagingFilter pagingFilter,
-			Expression<Func<T, bool>> expression = null,
-			Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-			List<string> includes = null
+		Task<TSource>? GetFieldByAsync(
+			Expression<Func<TSource, bool>>? expression,
+			Expression<Func<TSource, TSource>> fieldSelector,
+			bool asNoTracking = false,
+			string? includeEntity = null
 		);
+
+		/// <summary>
+		/// Get the fields that match the selection criteria.
+		/// </summary>
+		/// <param name="fieldSelector"></param>
+		/// <param name="expression"></param>
+		/// <param name="pagingFilter"></param>
+		/// <param name="asNoTracking"></param>
+		/// <param name="includeEntity"></param>
+		/// <param name="orderBy"></param>
+		/// <returns></returns>
+		Task<IEnumerable<TSource>>? GetFieldFromAllAsync(
+			Expression<Func<TSource, TSource>> fieldSelector,
+			Expression<Func<TSource, bool>>? expression = null,
+			IPagingFilter? pagingFilter=null,
+			bool asNoTracking = false,
+			string includeEntity = null,
+			string? orderBy = null
+		);
+
+		
 
 		/// <summary>
 		/// Insert the given entity into the Database.
 		/// </summary>
 		/// <param name="entity"></param>
 		/// <returns></returns>
-		Task InsertAsync(T entity);
+		Task InsertAsync(TSource entity);
 
 		/// <summary>
 		/// Insert the given entities into the Database.
 		/// </summary>
 		/// <param name="entities"></param>
 		/// <returns></returns>
-		Task InsertRangeAsync(IEnumerable<T> entities);
+		Task InsertRangeAsync(IEnumerable<TSource> entities);
 
 		/// <summary>
 		/// Deleting the entity that matches the given id from the Database .
 		/// </summary>
 		/// <param name="entity"></param>
 		/// <returns></returns>
-		Task<bool> DeleteAsync(Expression<Func<T, bool>> expression);
+		Task<bool> DeleteAsync(Expression<Func<TSource, bool>> expression);
 
 		/// <summary>
 		/// /// Deleting the given entities from the Database.
 		/// </summary>
 		/// <param name="entities"></param>
 		/// <returns></returns>
-		void DeleteRangeAsync(IEnumerable<T> entities);
+		void DeleteRangeAsync(IEnumerable<TSource> entities);
 
 		/// <summary>
 		/// Update the Database with given entity.
 		/// </summary>
 		/// <param name="entity"></param>
 		/// <returns></returns>
-		void Update(T entity);
+		void Update(TSource entity);
 	}
 }
