@@ -7,7 +7,11 @@ namespace GraduationProject.Configurations
 	public class MapperInitializer : Profile {
 		public MapperInitializer() {
 			CreateMap<ProductCreateDto, Product>()
-				.ForMember(dest => dest.ProductCategories, opt => opt.MapFrom(src => src.ProductCategories.Select(pc => new ProductCategoryJoin { ProductCategoryId = pc })))
+				.ForMember(dest => dest.ProductCategories, opt => opt.MapFrom(src => src.ProductCategoriesIds.Select(pc => new ProductCategoryJoin { ProductCategoryId = pc })))
+				.ForAllMembers(opt => opt.Condition((src, dest, sourceMember) => sourceMember != null));
+			
+			CreateMap<Product, ProductCreateDto>()
+				.ForMember(dest => dest.ProductCategoriesIds, opt => opt.MapFrom(src => src.ProductCategories.Select(pc => pc.ProductCategoryId)))
 				.ForAllMembers(opt => opt.Condition((src, dest, sourceMember) => sourceMember != null));
 			
 			CreateMap<Product, ProductDto>()
@@ -35,6 +39,7 @@ namespace GraduationProject.Configurations
 			CreateMap<ProductCategory, ProductCategoryDto>()
 				.ReverseMap()
 				.ForAllMembers(opt => opt.Condition((src, dest, sourceMember) => sourceMember != null));
+			
 			
 			CreateMap<Product, ProductUpdateDto>()
 				.ForMember(dest => dest.ProductCategories, opt => opt.MapFrom(src => src.ProductCategories.Select(pc => pc.ProductCategoryId)))
