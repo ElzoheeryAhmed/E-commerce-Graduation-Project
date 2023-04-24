@@ -1,8 +1,10 @@
+using System.Linq.Expressions;
 using AutoMapper;
+using GraduationProject.Controllers.FilterParameters;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
-using Microsoft.AspNetCore.Identity;
+using GraduationProject.Repository.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GraduationProject.Controllers
@@ -11,49 +13,79 @@ namespace GraduationProject.Controllers
     [Route("api/[controller]")]
     public class ReviewController : ControllerBase {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly UserManager<User> _userManager;
 		private readonly ILogger<ReviewController> _logger;
 		private readonly IMapper _mapper;
 
-		public ReviewController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<ReviewController> logger, IMapper mapper) {
+		public ReviewController(IUnitOfWork unitOfWork, ILogger<ReviewController> logger, IMapper mapper) {
 			_unitOfWork = unitOfWork;
-            _userManager = userManager;
 			_logger = logger;
 			_mapper = mapper;
 		}
         
+		/// <summary>
+		/// Get all reviews of a specific product.
+		/// </summary>
+		/// <param name="productId">The id of the product.</param>
+		/// <param name="pagingFilter">The page number and page size.</param>
+		/// <param name="orderBy">A comma-separated list of fields to order the results by. The results will be sorted in ascending order by default. To sort in descending order, prefix the field name with a hyphen (-).</param>
+		/// <returns></returns>
+		/// <response code="200">Returns the reviews of the specified product.</response>
+		/// <response code="404">If the product is not found.</response>
+		/// <response code="500">If an internal server error occurs.</response>
         [HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
+		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetReviews([FromQuery] PagingFilter pagingFilter) {
+		public async Task<IActionResult> GetReviewsByProduct([FromQuery] string productId, [FromQuery] PagingFilter pagingFilter, [FromQuery] string? orderBy = null) {
 			try {
-				var reviews = await _unitOfWork.Reviews.GetAllAsync(pagingFilter: pagingFilter);
+				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,UserId,ReviewText,Timestamp",  FieldsToExclude = "User,Product,ProductId" };
+				Expression<Func<Review, Review>> selectExpression = QueryableExtensions<Review>.EntityFieldsSelector(fieldsFilters);
+				
+				var reviews = await _unitOfWork.Reviews.GetAllAsync(new List<Expression<Func<Review, bool>>>() { r => r.ProductId == productId }, pagingFilter, true, selectExpression: selectExpression, orderBy: orderBy);
+				
+				if (reviews == null) {
+					_logger.LogWarning($"Failed GET attempt in {nameof(GetReviewsByProduct)}. Could not find a product with id={productId}.");
+					
+					return NotFound($"Could not find a product with id={productId}.");
+				}
 
-				return Ok(_mapper.Map<IList<ReviewDto>>(reviews));
+				return Ok(reviews);
 			}
 			catch (Exception ex) {
-				_logger.LogError(ex, $"Something went wrong when trying to access all the review data.");
+				_logger.LogError(ex, $"Something went wrong when trying to access all the reviews of the specified product.");
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
 		
 		
+		/// <summary>
+		/// Get all reviews of a specific user.
+		/// </summary>
+		/// <param name="userId">The id of the user.</param>
+		/// <param name="productId">The id of the product.</param>
+		/// <param name="pagingFilter">The page number and page size.</param>
+		/// <param name="orderBy">A comma-separated list of fields to order the results by. The results will be sorted in ascending order by default. To sort in descending order, prefix the field name with a hyphen (-).</param>
+		/// <returns></returns>
+		/// <response code="200">Returns the reviews of the specified user.</response>
+		/// <response code="404">If the user is not found.</response>
+		/// <response code="500">If an internal server error occurs.</response>
         [HttpGet("{userId}/{productId}")]
-		[ActionName(nameof(GetReview))]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetReview(string userId, string productId) {
+		public async Task<IActionResult> GetProductReviewsByUser(string userId, string productId, [FromQuery] PagingFilter pagingFilter, [FromQuery] string? orderBy = null) {
 			try {
-				var review = await _unitOfWork.Reviews.GetByAsync(r => r.UserId == userId && r.ProductId == productId);
+				var reviews = await _unitOfWork.Reviews.GetAllAsync(
+					new List<Expression<Func<Review, bool>>>() { r => r.UserId == userId && r.ProductId == productId },
+					selectExpression: r => new Review { Id = r.Id, ReviewText = r.ReviewText, Timestamp = r.Timestamp }, orderBy: orderBy);
 				
-				if (review == null) {
-					_logger.LogWarning($"Failed GET attempt in {nameof(GetReview)}. Could not find a review with userId={userId} and productId={productId}.");
+				if (reviews == null) {
+					_logger.LogWarning($"Failed GET attempt in {nameof(GetProductReviewsByUser)}. Could not find any reviews for userId={userId} and productId={productId}.");
 					
-					return NotFound($"Could not find a review with userId={userId} and productId={productId}");
+					return NotFound($"Could not find any reviews for userId={userId} and productId={productId}");
 				}
 				
-				return Ok(_mapper.Map<ReviewDto>(review));
+				return Ok(_mapper.Map<List<ReviewDto>>(reviews));
 			}
 			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to access the data of the review with userId={userId} and productId={productId}.");
@@ -61,10 +93,51 @@ namespace GraduationProject.Controllers
 			}
 		}
 		
+		/// <summary>
+		/// Get a review by a review id.
+		/// </summary>
+		/// <param name="id">The review id.</param>
+		/// <returns></returns>
+		/// <response code="200">Returns the specified review.</response>
+		/// <response code="404">If the review is not found.</response>
+		/// <response code="500">If an internal server error occurs.</response>
+        [HttpGet("{id}")]
+		[ProducesResponseType(StatusCodes.Status200OK)]
+		[ProducesResponseType(StatusCodes.Status404NotFound)]
+		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+		public async Task<IActionResult> GetReview(int id) {
+			try {
+				var review = await _unitOfWork.Reviews.GetByAsync(
+					r => r.Id == id,
+					selectExpression: r => new Review { Id = r.Id, UserId = r.UserId, ProductId = r.ProductId, ReviewText = r.ReviewText, Timestamp = r.Timestamp });
+				
+				if (review == null) {
+					_logger.LogWarning($"Failed GET attempt in {nameof(GetProductReviewsByUser)}. Could not find a review with id={id}.");
+					
+					return NotFound($"Failed GET attempt in {nameof(GetProductReviewsByUser)}. Could not find a review with id={id}.");
+				}
+				
+				return Ok(review);
+			}
+			catch (Exception ex) {
+				_logger.LogError(ex, $"Something went wrong when trying to access the data of the review with id={id}.");
+				return StatusCode(500, "Internal Server Error.");
+			}
+		}
+		
+		/// <summary>
+		/// Create a new review.
+		/// </summary>
+		/// <param name="reviewDto">The review to create.</param>
+		/// <returns></returns>
+		/// <response code="201">Returns the newly created review.</response>
+		/// <response code="400">If the review is not valid.</response>
+		/// <response code="500">If an internal server error occurs.</response>
 		[HttpPost]
 		[ProducesResponseType(StatusCodes.Status201Created)]
+		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> CreateReview([FromBody] ReviewDto reviewDto) {
+		public async Task<IActionResult> CreateReview([FromBody] ReviewCreateDto reviewDto) {
 			if (!ModelState.IsValid) {
 				_logger.LogInformation($"Invalid POST attempt in {nameof(CreateReview)}. The request body is not valid.");
 				
@@ -74,19 +147,13 @@ namespace GraduationProject.Controllers
 			try {
 				var review = _mapper.Map<Review>(reviewDto);
 				
-				var exists = await _unitOfWork.Reviews.existsAsync(r => r.Id == review.Id);
-				
-				if (exists) {
-					_logger.LogInformation($"Invalid POST attempt in {nameof(CreateReview)}. A review with same key already exists.");
-					
-					return BadRequest("A review with same key already exists.");
-				}
-				
 				await _unitOfWork.Reviews.InsertAsync(review);
+				
 				await _unitOfWork.Save();
 				
-				return CreatedAtRoute("GetReview", new { Id = review.Id }, review);
+				return CreatedAtAction(nameof(GetReview), new { Id = review.Id }, review);
 			}
+			
 			catch (Exception ex) {
 				_logger.LogError(ex, $"Something went wrong when trying to create a new review in the {nameof(CreateReview)}.");
 				
@@ -94,37 +161,49 @@ namespace GraduationProject.Controllers
 			}
 		}
 		
-		[HttpPut("{userId}/{productId}")]
-		[ProducesResponseType(StatusCodes.Status204NoContent)]
+		/// <summary>
+		/// Update a review.
+		/// </summary>
+		/// <param name="id">The review id.</param>
+		/// <param name="reviewDto">The review to update.</param>
+		/// <returns></returns>
+		/// <response code="200">Returns the updated review.</response>
+		/// <response code="400">If the review is not valid.</response>
+		/// <response code="404">If the review is not found.</response>
+		/// <response code="500">If an internal server error occurs.</response>
+		[HttpPut("id")]
+		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
+		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> UpdateReview(string userId, string productId, [FromBody] ReviewUpdateDto reviewDto) {
+		public async Task<IActionResult> UpdateReview(int id, [FromBody] ReviewUpdateDto reviewDto) {
 			if (!ModelState.IsValid) {
 				_logger.LogInformation($"Invalid PUT attempt in {nameof(UpdateReview)}. The request body is not valid.");
 				
 				return BadRequest(ModelState);
 			}
 			
-			if (userId != reviewDto.UserId || productId != reviewDto.ProductId) {
-				_logger.LogInformation($"Invalid PUT attempt in {nameof(UpdateReview)}. The user id and product id in the request body do not match the ones in the request url.");
-				
-				return BadRequest($"The user id and product id in the request body do not match the ones in the request url.");
-			}
-			
 			try {
 				var review = _mapper.Map<Review>(reviewDto);
 				
-				var exists = await _unitOfWork.Ratings.existsAsync(r => r.ProductId == productId && r.UserId == userId);
+				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,ReviewText,Timestamp,UserId,ProductId",  FieldsToExclude = "User,Product" };
+				Expression<Func<Review, Review>> selectExpression = QueryableExtensions<Review>.EntityFieldsSelector(fieldsFilters);
 				
-				if (!exists) {
-					_logger.LogInformation($"Invalid PUT attempt in {nameof(UpdateReview)}. The user with id={userId} has not reviewed the product with product id={productId} before.");
+				var existingReview = await _unitOfWork.Reviews.GetByAsync(r => r.Id == id, selectExpression: selectExpression);
+				
+				if (existingReview == null) {
+					_logger.LogInformation($"Invalid PUT attempt in {nameof(UpdateReview)}. Could not find any reviews with id={id}.");
 					
-					return BadRequest($"The user with id={userId} has not reviewed the product with product id={productId} before.");
+					return BadRequest($"Invalid PUT attempt in {nameof(UpdateReview)}. Could not find any reviews with id={id}.");
 				}
 				
-				review.Timestamp = DateTime.Now;
+				existingReview.Timestamp = DateTime.Now;
 				
-				_unitOfWork.Reviews.Update(review);
+				existingReview.ReviewText = review.ReviewText;
+				
+				// Either use update, or don't use the selectExpression and the update will be done automatically.
+				_unitOfWork.Reviews.Update(existingReview);
+				
 				await _unitOfWork.Save();
 				
 				return NoContent();
@@ -136,28 +215,31 @@ namespace GraduationProject.Controllers
 			}
 		}
 		
-		[HttpDelete("{userId}/{productId}")]
+		/// <summary>
+		/// Delete a review.
+		/// </summary>
+		/// <param name="id">The id of the review.</param>
+		/// <returns></returns>
+		/// <response code="204">If the review is deleted successfully.</response>
+		/// <response code="400">If the review is not valid.</response>
+		/// <response code="404">If the review is not found.</response>
+		/// <response code="500">If an internal server error occurs.</response>
+		[HttpDelete("{id}")]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> DeleteReview(string userId, string productId) {
-			if (userId == null || productId == null) {
-				_logger.LogInformation($"Invalid DELETE attempt in {nameof(DeleteReview)}. Either the user id or the product id is null.");
-				
-				return BadRequest(ModelState);
-			}
-			
+		public async Task<IActionResult> DeleteReview(int id) {
 			try {
-				var exists = await _unitOfWork.Reviews.existsAsync(r => r.UserId == userId && r.ProductId == productId);
+				var exists = await _unitOfWork.Reviews.ExistsAsync(r => r.Id == id);
 				
 				if (!exists) {
-					_logger.LogInformation($"Invalid DELETE attempt in {nameof(DeleteReview)}. No reviews exist for the product ({productId}) and user ({userId}).");
+					_logger.LogInformation($"Invalid DELETE attempt in {nameof(DeleteReview)}. No reviews exist with id={id}.");
 					
-					return NotFound($"No reviews exist for the product ({productId}) and user ({userId}).");
+					return NotFound($"Invalid DELETE attempt in {nameof(DeleteReview)}. No reviews exist with id={id}.");
 				}
 				
-				await _unitOfWork.Reviews.DeleteAsync(r => r.UserId == userId && r.ProductId == productId);
+				await _unitOfWork.Reviews.DeleteAsync(r => r.Id == id);
 				await _unitOfWork.Save();
 				
 				return NoContent();
