@@ -1,6 +1,7 @@
+using GraduationProject.Controllers.FilterParameters;
 using GraduationProject.Data;
+using GraduationProject.Repository.Extensions;
 using GraduationProject.IRepository;
-using GraduationProject.Models.Dto;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Linq.Expressions;
@@ -18,19 +19,26 @@ namespace GraduationProject.Repository
 		}
 		
 		
-		public async Task<bool> existsAsync(Expression<Func<TSource, bool>> expression) {
-			return await _db.AnyAsync(expression);
+		public async Task<bool> ExistsAsync(Expression<Func<TSource, bool>> expression) {
+			return await _db.AsNoTracking().AnyAsync(expression);
 		}
 		
-		public async Task<TSource>? GetByAsync(Expression<Func<TSource, bool>> expression = null, bool asNoTracking = false, List<string>? includeEntities = null) {
+		public async Task<TSource>? GetByAsync(Expression<Func<TSource, bool>> expression, bool asNoTracking = false, List<string>? includeEntities = null, Expression<Func<TSource, TSource>>? selectExpression = null) {
 			// Create an IQueryable<TSource> object from the _db property, which represents the database table for type T.
 			IQueryable<TSource> query = _db;
+			
 			
 			if (includeEntities != null) {
 				foreach (var entity in includeEntities) {
 					// If the includes parameter is not null, load the related entities using the Include method.
 					query = query.Include(entity);
 				}
+			}
+			
+			query = query.Where(expression);
+			
+			if (selectExpression != null) {
+				query = query.Select(selectExpression);
 			}
 			
 			// Calling AsNoTracking() before calling FirstOrDefaultAsync() can improve performance by reducing the amount of work that Entity Framework needs to do to track changes to the entity. Since GetByAsync is only retrieving an entity and not modifying it, there is no need to track changes to the entity, hence AsNoTracking() is used.
@@ -44,12 +52,18 @@ namespace GraduationProject.Repository
 			
 			// Execute the query and retrieve the first entity that matches the criteria using the FirstOrDefaultAsync method.
 			// If the expression parameter is not null, filter the query by the given expression.
-			return await query.FirstOrDefaultAsync(expression);
+			return await query.FirstOrDefaultAsync();
 		}
 
-		public async Task<IEnumerable<TSource>>? GetAllAsync(List<Expression<Func<TSource, bool>>>? expressions = null, IPagingFilter? pagingfilter=null, bool asNoTracking = false, List<string>? includeEntities = null, string? orderBy = null) {
+		public async Task<IEnumerable<TSource>>? GetAllAsync(List<Expression<Func<TSource, bool>>>? expressions = null, IPagingFilter? pagingfilter=null, bool asNoTracking = false, List<string>? includeEntities = null, Expression<Func<TSource, TSource>>? selectExpression = null, string? orderBy = null) {
 			IQueryable<TSource> query = _db;
 
+			if (includeEntities != null) {
+				foreach (var entity in includeEntities) {
+					query = query.Include(entity);
+				}
+			}
+			
 			if (expressions != null) {
 				// https://stackoverflow.com/questions/4098343/entity-framework-where-method-chaining
 				foreach (var expression in expressions) {
@@ -57,10 +71,8 @@ namespace GraduationProject.Repository
 				}
 			}
 			
-			if (includeEntities != null) {
-				foreach (var entity in includeEntities) {
-					query = query.Include(entity);
-				}
+			if (selectExpression != null) {
+				query = query.Select(selectExpression);
 			}
 			
 			// if (orderBy != null) {
@@ -105,7 +117,7 @@ namespace GraduationProject.Repository
 			return await query.Where(expression).Select(fieldSelector).FirstOrDefaultAsync();
 		}
 
-		public async Task<IEnumerable<TSource>>? GetFieldFromAllAsync(Expression<Func<TSource, TSource>> fieldSelector, Expression<Func<TSource, bool>>? expression = null, IPagingFilter? pagingfilter=null, bool asNoTracking = false, string includeEntity = null, string? orderBy = null) {
+		public async Task<IEnumerable<TSource>>? GetFieldFromAllAsync(Expression<Func<TSource, TSource>> fieldSelector, Expression<Func<TSource, bool>>? expression = null, IPagingFilter? pagingfilter=null, bool asNoTracking = false, string? includeEntity = null, string? orderBy = null) {
 			IQueryable<TSource> query = _db;
 			
 			if (expression != null) {
