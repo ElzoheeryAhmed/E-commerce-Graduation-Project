@@ -1,8 +1,9 @@
+using System.Linq.Expressions;
 using AutoMapper;
+using GraduationProject.Controllers.FilterParameters;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
-using GraduationProject.Models.Dto;
-using GraduationProject.Repository;
+using GraduationProject.Repository.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -23,6 +24,16 @@ namespace GraduationProject.Controllers
 			_mapper = mapper;
 		}
         
+		
+		/// <summary>
+		/// Get a page of product categories.
+		/// </summary>
+		/// <param name="pagingFilter">The paging filter.</param>
+		/// <param name="orderBy">The order by.</param>
+		/// <returns></returns>
+		/// <response code="200">Returns a page of product categories.</response>
+		/// <response code="400">If the paging filter is invalid.</response>
+		/// <response code="500">If an error occurs.</response>
         [HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -30,17 +41,13 @@ namespace GraduationProject.Controllers
 		[Route("ProductCategories")]
 		public async Task<IActionResult> GetProductCategories([FromQuery] Categories_BrandsPagingFilter pagingFilter, [FromQuery] string? orderBy = null) {
 			try {
-				// if (pagingFilter.PageSize == 0) {
-				// 	pagingFilter = null;
-				// }
+				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,Name",  FieldsToExclude = "Products" };
+				Expression<Func<ProductCategory, ProductCategory>> selectExpression = QueryableExtensions<ProductCategory>.EntityFieldsSelector(fieldsFilters);
 				
-				var categories = await _unitOfWork.ProductCategories.GetAllAsync(null, pagingFilter, true, orderBy: orderBy);
+				var categories = await _unitOfWork.ProductCategories.GetAllAsync(null, pagingFilter, true, selectExpression: selectExpression, orderBy: orderBy);
 				
 				var json = JsonConvert.SerializeObject(categories, Formatting.Indented,
-					new GenericFieldBasedJsonConverter<ProductCategory>(
-						new HashSet<string>(typeof(ProductCategory).GetProperties().Select(p => p.Name)),
-						null, "Products"));
-				
+					new GenericFieldBasedJsonConverter<ProductCategory>(fieldsFilters.OnlySelectFields.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToHashSet(), fieldsFilters));
 				return Ok(json);
 			}
 			
