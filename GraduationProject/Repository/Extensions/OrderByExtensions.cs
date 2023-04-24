@@ -1,5 +1,5 @@
 
-namespace GraduationProject.Repository
+namespace GraduationProject.Repository.Extensions
 {
     public static class OrderByExtensions {
         public static IQueryable<TSource> OrderBy<TSource>(this IQueryable<TSource> queryable, string sorts) {
