@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace GraduationProject.Repository
+namespace GraduationProject.Repository.Extensions
 {
     public class SortCollection<TSource> {
         private List<ISortProperty<TSource>> Properties { get; set; } = new List<ISortProperty<TSource>>();
@@ -11,7 +11,7 @@ namespace GraduationProject.Repository
 
         public SortCollection() { }
 
-        public SortCollection(string value) : this(value?.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries)) { }
+        public SortCollection(string value) : this(value?.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim())) { }
 
         public SortCollection(IEnumerable<string> elements) {
             if (elements == null)
