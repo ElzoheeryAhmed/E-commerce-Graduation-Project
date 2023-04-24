@@ -1,5 +1,4 @@
 using GraduationProject.Models.Interfaces;
-using GraduationProject.Models.ModelEnums;
 using System.ComponentModel.DataAnnotations;
 
 namespace GraduationProject.Models.Dto
@@ -23,7 +22,7 @@ namespace GraduationProject.Models.Dto
 		public int Quantity { get; set; }
 		
 		public int BrandId { get; set; }
-		public List<int> ProductCategories { get; set; } = new List<int>();
+		public List<int> ProductCategoriesIds { get; set; } = new List<int>();
 	}
 	
 	public class ProductDto : ProductCreateDto, IProductInfoWithVotes {
@@ -56,6 +55,7 @@ namespace GraduationProject.Models.Dto
 		// public int VoteCount { get; set; }
 		// public double VoteAverage { get; set; }
 		public int BrandId { get; set; }
+		public int Quantity { get; set; }
 		public List<int>? ProductCategories { get; set; } = new List<int>();
 	}
 }
