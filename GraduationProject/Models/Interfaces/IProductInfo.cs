@@ -5,6 +5,7 @@ namespace GraduationProject.Models.Interfaces
         decimal Price { get; set; }
         decimal Discount { get; set; }
         int BrandId { get; set; }
+        int Quantity { get; set; }
     }
     
     public interface IProductInfoWithVotes : IProductInfo {
