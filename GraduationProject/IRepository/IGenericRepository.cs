@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
-using GraduationProject.Models.Dto;
-using X.PagedList;
+using GraduationProject.Controllers.FilterParameters;
 
 namespace GraduationProject.IRepository
 {
@@ -10,18 +9,21 @@ namespace GraduationProject.IRepository
 		/// </summary>
 		/// <param name="expression"></param>
 		/// <returns></returns>
-		Task<bool> existsAsync(Expression<Func<TSource, bool>> expression);
+		Task<bool> ExistsAsync(Expression<Func<TSource, bool>> expression);
 		
 		/// <summary>
 		/// Get the object of the specified type from the database if it matches the given expression.
 		/// </summary>
-		/// <param name="expression"></param>
-		/// <param name="includes"></param>
+		/// <param name="expression">Passed to the '.Where()' method.</param>
+		/// <param name="asNoTracking">Specifies whether to disable or enable tracking.</param>
+		/// <param name="includes">Specifies which nested entities to include.</param>
+		/// <param name="selectExpression">Specifies which fields to return</param>
 		/// <returns></returns>
 		Task<TSource>? GetByAsync(
-			Expression<Func<TSource, bool>> expression = null,
+			Expression<Func<TSource, bool>> expression,
 			bool asNoTracking = false,
-			List<string>? includes = null
+			List<string>? includes = null,
+			Expression<Func<TSource, TSource>>? selectExpression = null
 		);
 
 		/// <summary>
@@ -31,7 +33,8 @@ namespace GraduationProject.IRepository
 		/// <param name="expression"></param>
 		/// <param name="pagingFilter"></param>
 		/// <param name="asNoTracking"></param>
-		/// <param name="includes"></param>
+		/// <param name="includeEntities"></param>
+		/// <param name="selectExpression"></param>
 		/// <param name="orderBy"></param>
 		/// <returns></returns>
 		Task<IEnumerable<TSource>>? GetAllAsync(
@@ -39,6 +42,7 @@ namespace GraduationProject.IRepository
 			IPagingFilter? pagingFilter=null,
 			bool asNoTracking = false,
 			List<string>? includeEntities = null,
+			Expression<Func<TSource, TSource>>? selectExpression = null,
 			string? orderBy = null
 			// Func<IQueryable<TSource>, IOrderedQueryable<TSource>>? orderBy = null
 		);
@@ -60,7 +64,7 @@ namespace GraduationProject.IRepository
 		);
 
 		/// <summary>
-		/// Get the fields that match the selection criteria.
+		/// Get the field that match the selection criteria.
 		/// </summary>
 		/// <param name="fieldSelector"></param>
 		/// <param name="expression"></param>
@@ -74,7 +78,7 @@ namespace GraduationProject.IRepository
 			Expression<Func<TSource, bool>>? expression = null,
 			IPagingFilter? pagingFilter=null,
 			bool asNoTracking = false,
-			string includeEntity = null,
+			string? includeEntity = null,
 			string? orderBy = null
 		);
 
@@ -97,7 +101,7 @@ namespace GraduationProject.IRepository
 		/// <summary>
 		/// Deleting the entity that matches the given id from the Database .
 		/// </summary>
-		/// <param name="entity"></param>
+		/// <param name="expression"></param>
 		/// <returns></returns>
 		Task<bool> DeleteAsync(Expression<Func<TSource, bool>> expression);
 
