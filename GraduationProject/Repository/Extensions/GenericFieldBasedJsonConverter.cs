@@ -1,31 +1,39 @@
+using GraduationProject.Controllers.FilterParameters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace GraduationProject.Repository
+namespace GraduationProject.Repository.Extensions
 {
     public class GenericFieldBasedJsonConverter<T> : JsonConverter<T> {
         private readonly HashSet<string> _fields;
         public override bool CanRead => false;
         
-        public GenericFieldBasedJsonConverter(HashSet<string> allFields, string? onlyIncludeFields=null, string? fieldsToExclude=null) {
-            if (string.IsNullOrWhiteSpace(onlyIncludeFields)) {
-                if (string.IsNullOrWhiteSpace(fieldsToExclude)) {
+        public GenericFieldBasedJsonConverter(HashSet<string> allFields, EntityFieldsFilter fieldsFilters) {
+            if (string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields)) {
+                if (string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
                     _fields = allFields;
                 }
                 
                 else {
-                    HashSet<string> excludeFields = fieldsToExclude.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToHashSet();
+                    HashSet<string> excludeFields = fieldsFilters.FieldsToExclude.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToHashSet();
                     _fields = allFields.Where(field => !excludeFields.Contains(field)).ToHashSet();
                 }
             }
             
             else {
                 string fields = string.Join(',', allFields);
-                _fields = onlyIncludeFields.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToHashSet();
+                HashSet<string> includeFields = fieldsFilters.OnlySelectFields.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim()).ToHashSet();
+                if (!string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
+                    _fields = includeFields.Where(field => !fieldsFilters.FieldsToExclude.Contains(field)).ToHashSet();
+                }
+                
+                else {
+                    _fields = includeFields;
+                }
             }
         }
 
-        public override void WriteJson(JsonWriter writer, T value, JsonSerializer serializer) {
+        public override void WriteJson(JsonWriter writer, T? value, JsonSerializer serializer) {
             // var jsonObject = JObject.FromObject(value, serializer);
             var jsonObject = JObject.FromObject(value,
                 JsonSerializer.CreateDefault(new JsonSerializerSettings {
@@ -45,7 +53,7 @@ namespace GraduationProject.Repository
             jsonObject.WriteTo(writer);
         }
 
-        public override T ReadJson(JsonReader reader, Type objectType, T existingValue, bool hasExistingValue, JsonSerializer serializer) {
+        public override T ReadJson(JsonReader reader, Type objectType, T? existingValue, bool hasExistingValue, JsonSerializer serializer) {
             throw new NotImplementedException();
         }
     }
