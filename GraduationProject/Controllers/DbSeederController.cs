@@ -4,6 +4,7 @@ using EFCore.BulkExtensions;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
+using GraduationProject.Models.ModelEnums;
 using GraduationProject.Utils;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,8 +13,7 @@ namespace GraduationProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DbSeederController : ControllerBase
-    {
+    public class DbSeederController : ControllerBase {
 		private readonly int QUERY_TIMEOUT = 3600;
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<User> _userManager;
@@ -29,8 +29,7 @@ namespace GraduationProject.Controllers
         
         [HttpGet]
 		[Route("users/seed")]
-		public async Task<IActionResult> SeedUsers(int start, int end)
-		{
+		public async Task<IActionResult> SeedUsers(int start, int end) {
             List<UserCreateDto> userDtos;
             Stopwatch sw;
             
@@ -42,17 +41,14 @@ namespace GraduationProject.Controllers
                 
                 userDtos = UserSeeder.Seed(file_index++);
                 
-                foreach (var userDto in userDtos)
-                {
+                foreach (var userDto in userDtos) {
                     User user = _mapper.Map<User>(userDto);
                     user.EmailConfirmed = true;
                     
-                    var result = await _userManager.CreateAsync(user, "A1" + user.Email); // Helpers.GeneratePassword(_userManager)
+                    var result = await _userManager.CreateAsync(user, "A1" + user.Email); // UserHelper.GeneratePassword(_userManager)
                     
-                    if (!result.Succeeded)
-                    {
-                        foreach (var error in result.Errors)
-                        {
+                    if (!result.Succeeded) {
+                        foreach (var error in result.Errors) {
                             _logger.LogError(error.Description);
                             ModelState.AddModelError("", error.Description);
                         }
@@ -60,7 +56,7 @@ namespace GraduationProject.Controllers
                         return Problem($"An error occurred while seeding user data.", statusCode: 500);
                     }
                 }
-                
+		
                 Console.WriteLine("Finished in " + sw.ElapsedMilliseconds/1000 + " sec");
             }
 			return Ok("Data added successfully."); // + output );
@@ -87,7 +83,10 @@ namespace GraduationProject.Controllers
 			
 			Console.WriteLine("Inserting products data into the Db...");
 			List<Product> products = _mapper.Map<List<Product>>(seedProductDto.Products);
+			products.ForEach(p => p.Status = ProductStatus.Current);
+			// bulkConfig.IncludeGraph = true;
 			await _unitOfWork.Context.BulkInsertAsync(products, bulkConfig);
+			// bulkConfig.IncludeGraph = false;
 			
 			Console.WriteLine("Adding records to the ProductCategoryJoin table...");
 			List<ProductCategoryJoin> productCategoryJoins = new List<ProductCategoryJoin>();
@@ -101,8 +100,10 @@ namespace GraduationProject.Controllers
 				}
 			}
 			
+			Console.WriteLine("Inserting records to the ProductCategoryJoin table...");
 			await _unitOfWork.Context.BulkInsertAsync(productCategoryJoins, bulkConfig);
 			
+			Console.WriteLine("Saving changes...");
             await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
             
 			Console.WriteLine("Finished seeding products data.");
@@ -112,8 +113,7 @@ namespace GraduationProject.Controllers
         
         [HttpGet]
 		[Route("ratings/seed")]
-		public async Task<IActionResult> SeedRatings()
-		{
+		public async Task<IActionResult> SeedRatings() {
 			List<RatingDto> ratings = RatingSeeder.Seed(null);
 			
 			BulkConfig bulkConfig = new BulkConfig() { BulkCopyTimeout = QUERY_TIMEOUT };
@@ -132,7 +132,7 @@ namespace GraduationProject.Controllers
 			
 			BulkConfig bulkConfig = new BulkConfig() { BulkCopyTimeout = QUERY_TIMEOUT };
 			await _unitOfWork.Context.BulkInsertAsync(_mapper.Map<List<Review>>(reviews), bulkConfig);
-            
+			
 			await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
 			return Ok("Data added successfully."); //  + output 
 		}
@@ -145,7 +145,7 @@ namespace GraduationProject.Controllers
 			
 			BulkConfig bulkConfig = new BulkConfig() { BulkCopyTimeout = QUERY_TIMEOUT};
 			await _unitOfWork.Context.BulkInsertAsync(_mapper.Map<List<Review>>(reviews), bulkConfig);
-
+			
 			await _unitOfWork.Context.BulkSaveChangesAsync(bulkConfig);
 			return Ok("Data added successfully."); // " + output );
 		}
