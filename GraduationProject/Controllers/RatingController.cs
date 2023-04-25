@@ -33,7 +33,7 @@ namespace GraduationProject.Controllers
 		/// <response code="200">Returns the ratings of the specified product.</response>
 		/// <response code="404">If the product does not exist.</response>
 		/// <response code="500">If something went wrong on the server.</response>
-        [HttpGet("{id}")]
+       /* [HttpGet("{id}")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -57,7 +57,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
-        
+        */
 		/// <summary>
 		/// Get the rating of a product given by a user.
 		/// </summary>

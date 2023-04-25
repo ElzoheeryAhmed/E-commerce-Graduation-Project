@@ -141,7 +141,7 @@ namespace GraduationProject.Utils
                         // Price = price,
 						// Discount = discount,
 						
-                        Status = ProductStatus.Current,
+                       // Status = ProductStatus.Current,
 						DateAdded = DateTime.ParseExact(dateDict[key.Value.ToString()], "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), // DateTime.Now, // The oldest datetime among the 150794 products is: 971136000 -> 2000-10-10 02:00:00
 						BrandId = brandId,
 						VoteCount = int.Parse(extractedProducts.vote_count[key.Name].ToString().Trim()),

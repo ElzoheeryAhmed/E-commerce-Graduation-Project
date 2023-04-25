@@ -32,7 +32,7 @@ namespace GraduationProject.Controllers
 		/// <response code="200">Returns the reviews of the specified product.</response>
 		/// <response code="404">If the product is not found.</response>
 		/// <response code="500">If an internal server error occurs.</response>
-        [HttpGet]
+        /*[HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -56,7 +56,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
-		
+		*/
 		
 		/// <summary>
 		/// Get all reviews of a specific user.
@@ -69,7 +69,7 @@ namespace GraduationProject.Controllers
 		/// <response code="200">Returns the reviews of the specified user.</response>
 		/// <response code="404">If the user is not found.</response>
 		/// <response code="500">If an internal server error occurs.</response>
-        [HttpGet("{userId}/{productId}")]
+        /*[HttpGet("{userId}/{productId}")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -92,7 +92,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
-		
+		*/
 		/// <summary>
 		/// Get a review by a review id.
 		/// </summary>
@@ -105,7 +105,7 @@ namespace GraduationProject.Controllers
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetReview(int id) {
+		/*public async Task<IActionResult> GetReview(int id) {
 			try {
 				var review = await _unitOfWork.Reviews.GetByAsync(
 					r => r.Id == id,
@@ -124,7 +124,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
-		
+		*/
 		/// <summary>
 		/// Create a new review.
 		/// </summary>
@@ -133,7 +133,7 @@ namespace GraduationProject.Controllers
 		/// <response code="201">Returns the newly created review.</response>
 		/// <response code="400">If the review is not valid.</response>
 		/// <response code="500">If an internal server error occurs.</response>
-		[HttpPost]
+		/*[HttpPost]
 		[ProducesResponseType(StatusCodes.Status201Created)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -160,7 +160,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
-		
+		*/
 		/// <summary>
 		/// Update a review.
 		/// </summary>

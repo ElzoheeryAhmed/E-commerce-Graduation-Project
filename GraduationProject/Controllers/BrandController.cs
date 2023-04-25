@@ -3,6 +3,7 @@ using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
 using GraduationProject.Repository;
+using GraduationProject.Repository.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -23,7 +24,7 @@ namespace GraduationProject.Controllers
 			_mapper = mapper;
 		}
         
-        [HttpGet]
+        /*[HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 		[Route("Brands")]
@@ -44,8 +45,8 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error. Something went wrong when trying to access the brands data.");
 			}
 		}
-
-        
+		*/
+        /*
         [HttpGet("{id}")]
 		[ActionName(nameof(GetBrand))]
 		[ProducesResponseType(StatusCodes.Status200OK)]
@@ -70,6 +71,6 @@ namespace GraduationProject.Controllers
 				_logger.LogError(ex, $"Something went wrong when trying to access the data of the product with id={id}.");
 				return StatusCode(500, $"Internal Server Error. Something went wrong when trying to access the data of the product with id={id}.");
 			}
-		}
+		}*/
     }
 }

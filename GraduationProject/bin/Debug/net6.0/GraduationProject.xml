@@ -1,0 +1,302 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GraduationProject</name>
+    </assembly>
+    <members>
+        <member name="P:GraduationProject.Controllers.FilterParameters.PagingFilter.PageNumber">
+            <summary>
+            The page number of the paged list to return. Defaults to the first page (page 1).
+            </summary>
+        </member>
+        <member name="P:GraduationProject.Controllers.FilterParameters.PagingFilter.PageSize">
+            <summary>
+            The maximum number of items to return per page. Defaults to 10 and limited to 50.
+            </summary>
+        </member>
+        <member name="P:GraduationProject.Controllers.FilterParameters.Categories_BrandsPagingFilter.PageNumber">
+            <summary>
+            The page number of the paged list to return. Defaults to the first page (page 1).
+            </summary>
+        </member>
+        <member name="P:GraduationProject.Controllers.FilterParameters.Categories_BrandsPagingFilter.PageSize">
+            <summary>
+            The maximum number of items to return per page. Defaults to 50 and limited to 5000.
+            </summary>
+        </member>
+        <member name="P:GraduationProject.Controllers.FilterParameters.EntityFieldsFilter.OnlySelectFields">
+            <summary>
+            A comma-separated list of fields to be returned in the API response. By default, all fields are returned. Cannot be used along with fieldsToExclude.
+            </summary>
+        </member>
+        <member name="P:GraduationProject.Controllers.FilterParameters.EntityFieldsFilter.FieldsToExclude">
+            <summary>
+            A comma-separated list of fields to be excluded from the API response. By default, all fields are returned. Cannot be used along with onlyIncludeFields.
+            </summary>
+        </member>
+        <member name="M:GraduationProject.Controllers.Helpers.ProductHelper`1.GetNameOfEntitiesToInclude(GraduationProject.Controllers.FilterParameters.ProductFieldsFilter)">
+            <summary>
+            This method is used to get the name of the entities to include in the query based on the includedFields parameter.
+            </summary>
+            <param name="fieldsFilters"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.Controllers.Helpers.ProductHelper`1.KeepOriginalIfNewIsZero(`0,GraduationProject.Models.Product)">
+            <summary>
+            Zero values are not ignored when mapping. This method is used to keep the data of the existing product if the data of the productDto is zero.
+            </summary>
+            <param name="productDto">Represents the new data.</param>
+            <param name="product">Represents the original data.</param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.Controllers.Helpers.ProductHelperWithVotes`1.KeepOriginalIfNewIsZero(`0,GraduationProject.Models.Product)">
+            <summary>
+            Zero values are not ignored when mapping. This method is used to keep the data of the existing product if the data of the productDto is zero.
+            </summary>
+            <param name="productDto">Represents the new data.</param>
+            <param name="product">Represents the original data.</param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.Controllers.Helpers.ProductHelper.GetProductFilters(GraduationProject.Controllers.FilterParameters.ProdcutRecordFilters)">
+            <summary>
+            This method is used to get the filters for the products based on the recordFilters parameter.
+            </summary>
+            <param name="recordFilters"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.Controllers.ProductCategoryController.GetProductCategories(GraduationProject.Controllers.FilterParameters.Categories_BrandsPagingFilter,System.String)">
+            <summary>
+            Get a page of product categories.
+            </summary>
+            <param name="pagingFilter">The paging filter.</param>
+            <param name="orderBy">The order by.</param>
+            <returns></returns>
+            <response code="200">Returns a page of product categories.</response>
+            <response code="400">If the paging filter is invalid.</response>
+            <response code="500">If an error occurs.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.ProductController.GetProduct(System.String,GraduationProject.Controllers.FilterParameters.ProductFieldsFilter)">
+            <summary>
+            Get a product by its id.
+            </summary>
+            <param name="id">The id of the product to get.</param>
+            <param name="fieldsFilters">A comma-separated list of fields to include and another one for fields to exclude from the results.</param>
+            <returns></returns>
+            <response code="200">Returns the product with the specified id.</response>
+            <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
+            <response code="404">If the product with the specified id is not found.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.ProductController.CreateProduct(GraduationProject.Models.Dto.ProductCreateDto)">
+            <summary>
+            Create a new product.
+            </summary>
+            <param name="productDto">The product to create.</param>
+            <returns></returns>
+            <response code="201">Returns the newly created product.</response>
+            <response code="400">If the product is null or if the given product model is invalid.</response>
+            <response code="500">If there was an error on the server while creating the product.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.ProductController.UpdateProduct(System.String,GraduationProject.Models.Dto.ProductUpdateDto)">
+            <summary>
+            Update an existing product.
+            </summary>
+            <param name="id">The id of the product to update.</param>
+            <param name="productDto">The product to update.</param>
+            <returns></returns>
+            <response code="200">Returns the updated product.</response>
+            <response code="400">If the product is null or if the given product model is invalid.</response>
+            <response code="404">If the product with the given id was not found.</response>
+            <response code="500">If there was an error on the server while updating the product.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.ProductController.DeleteProduct(System.String)">
+            <summary>
+            Deletes a product.
+            </summary>
+            <param name="id">The id of the product to delete.</param>
+            <returns></returns>
+            <response code="200">If the product was successfully deleted.</response>
+            <response code="400">If the id is null or empty.</response>
+            <response code="404">If the product with the specified id doesn't exist.</response>
+            <response code="500">If there was an error on the server.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.RatingController.GetProductRatingByUser(System.String,System.String)">
+            <summary>
+            Get the rating of a product given by a user.
+            </summary>
+            <param name="userId">The id of the user.</param>
+            <param name="productId">The id of the product.</param>
+            <returns>Returns the rating of the product given by the user.</returns>
+            <response code="200">Returns the rating of the product given by the user.</response>
+            <response code="404">If the rating does not exist.</response>
+            <response code="500">If something went wrong on the server.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.RatingController.CreateRating(GraduationProject.Models.Dto.RatingCreateDto)">
+            <summary>
+            Create a new rating for a product.
+            </summary>
+            <param name="ratingDto">The rating to create.</param>
+            <returns>Returns the created rating.</returns>
+            <response code="201">Returns the created rating.</response>
+            <response code="400">If the request body is not valid or the current user has already rated the same product before.</response>
+            <response code="500">If something went wrong on the server.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.RatingController.UpdateRating(System.String,System.String,GraduationProject.Models.Dto.RatingUpdateDto)">
+            <summary>
+            Update a rating.
+            </summary>
+            <param name="userId">The id of the user.</param>
+            <param name="productId">The id of the product.</param>
+            <param name="ratingDto">The rating to update.</param>
+            <returns>Returns no content.</returns>
+            <response code="200">The updated rating.</response>
+            <response code="400">If the request body is not valid or the user id and product id in the request body do not match the ones in the request url.</response>
+            <response code="404">If the rating does not exist.</response>
+            <response code="500">If something went wrong on the server.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.RatingController.DeleteRating(System.String,System.String)">
+            <summary>
+            Delete a rating.
+            </summary>
+            <param name="userId">The id of the user.</param>
+            <param name="productId">The id of the product.</param>
+            <returns>Returns no content.</returns>
+            <response code="204">The rating deleted successfully.</response>
+            <response code="400">If the user id or product id is null.</response>
+            <response code="404">If the rating does not exist.</response>
+            <response code="500">If something went wrong on the server.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.ReviewController.UpdateReview(System.Int32,GraduationProject.Models.Dto.ReviewUpdateDto)">
+            <summary>
+            Get a review by a review id.
+            </summary>
+            <param name="id">The review id.</param>
+            <returns></returns>
+            <response code="200">Returns the specified review.</response>
+            <response code="404">If the review is not found.</response>
+            <response code="500">If an internal server error occurs.</response>
+        </member>
+        <member name="M:GraduationProject.Controllers.ReviewController.DeleteReview(System.Int32)">
+            <summary>
+            Delete a review.
+            </summary>
+            <param name="id">The id of the review.</param>
+            <returns></returns>
+            <response code="204">If the review is deleted successfully.</response>
+            <response code="400">If the review is not valid.</response>
+            <response code="404">If the review is not found.</response>
+            <response code="500">If an internal server error occurs.</response>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.ExistsAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Checks if an entity exists in the database that matches the given expression.
+            </summary>
+            <param name="expression"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.GetByAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Boolean,System.Collections.Generic.List{System.String},System.Linq.Expressions.Expression{System.Func{`0,`0}})">
+            <summary>
+            Get the object of the specified type from the database if it matches the given expression.
+            </summary>
+            <param name="expression">Passed to the '.Where()' method.</param>
+            <param name="asNoTracking">Specifies whether to disable or enable tracking.</param>
+            <param name="includes">Specifies which nested entities to include.</param>
+            <param name="selectExpression">Specifies which fields to return</param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.GetAllAsync(System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}}},GraduationProject.Controllers.FilterParameters.IPagingFilter,System.Boolean,System.Collections.Generic.List{System.String},System.Linq.Expressions.Expression{System.Func{`0,`0}},System.String)">
+            <summary>
+            Get one or more pages of objects if `PagingFilter` is not null otherwise all the objects of the specified type from the database.
+            Filter them with `expression` if not null, and order them by `orderBy` if not null.
+            </summary>
+            <param name="expression"></param>
+            <param name="pagingFilter"></param>
+            <param name="asNoTracking"></param>
+            <param name="includeEntities"></param>
+            <param name="selectExpression"></param>
+            <param name="orderBy"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.GetFieldByAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Linq.Expressions.Expression{System.Func{`0,`0}},System.Boolean,System.String)">
+            <summary>
+            Get the field that matches the selection criteria.
+            </summary>
+            <param name="expression"></param>
+            <param name="fieldSelector"></param>
+            <param name="asNoTracking"></param>
+            <param name="includeEntity"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.GetFieldFromAllAsync(System.Linq.Expressions.Expression{System.Func{`0,`0}},System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},GraduationProject.Controllers.FilterParameters.IPagingFilter,System.Boolean,System.String,System.String)">
+            <summary>
+            Get the field that match the selection criteria.
+            </summary>
+            <param name="fieldSelector"></param>
+            <param name="expression"></param>
+            <param name="pagingFilter"></param>
+            <param name="asNoTracking"></param>
+            <param name="includeEntity"></param>
+            <param name="orderBy"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.InsertAsync(`0)">
+            <summary>
+            Insert the given entity into the Database.
+            </summary>
+            <param name="entity"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.InsertRangeAsync(System.Collections.Generic.IEnumerable{`0})">
+            <summary>
+            Insert the given entities into the Database.
+            </summary>
+            <param name="entities"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.DeleteAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Deleting the entity that matches the given id from the Database .
+            </summary>
+            <param name="expression"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.DeleteRangeAsync(System.Collections.Generic.IEnumerable{`0})">
+            <summary>
+            /// Deleting the given entities from the Database.
+            </summary>
+            <param name="entities"></param>
+            <returns></returns>
+        </member>
+        <member name="M:GraduationProject.IRepository.IGenericRepository`1.Update(`0)">
+            <summary>
+            Update the Database with given entity.
+            </summary>
+            <param name="entity"></param>
+            <returns></returns>
+        </member>
+        <member name="T:GraduationProject.Models.Rating">
+            <summary>
+            This class defines a many-to-many relationship between the User and Product entities. The Rating entity acts as the join table that represents the ratings given by users to products.
+            </summary>
+        </member>
+        <member name="M:GraduationProject.Repository.Extensions.QueryableExtensions`1.EntityFieldsSelector(GraduationProject.Controllers.FilterParameters.EntityFieldsFilter,System.Type)">
+            <summary>
+            Generates an expression that selects specific fields from an entity object based on a given filter.
+            </summary>
+            <param name="fieldsFilters">The filters to apply when selecting fields.</param>
+            <param name="entityType">The type of the entity.</param>
+            <returns>An expression that selects the specified fields from an entity object.</returns>
+            <remarks>
+            This method can be used to generate an expression that selects a subset of fields from an entity object,
+            based on the given filter. The filter can specify a list of fields to include or exclude. By default, all fields are included.
+            The returned expression can be used as a projection in a LINQ query to avoid loading unnecessary data from the database.
+            </remarks>
+        </member>
+        <member name="M:GraduationProject.Repository.Extensions.SortCollection`1.AddOrUpdate(System.String)">
+            <summary>
+            Creates a string with the Property Sort or Flips the direction if it exists
+            </summary>
+            <param name="element"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

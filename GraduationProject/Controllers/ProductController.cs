@@ -40,7 +40,7 @@ namespace GraduationProject.Controllers
 		/// <response code="200">Returns a paged list of products.</response>
 		/// <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
 		/// <response code="500">If an error occurs while trying to access the database.</response>
-		[HttpGet]
+		/*[HttpGet]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -86,7 +86,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error. Something went wrong when trying to access proudcts data.");
 			}
 		}
-
+		*/
 		/// <summary>
 		/// Get a product by its id.
 		/// </summary>
