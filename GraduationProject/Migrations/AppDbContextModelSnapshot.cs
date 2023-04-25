@@ -96,11 +96,15 @@ namespace GraduationProject.Migrations
                     b.Property<DateTime?>("ReceiptDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ShippingAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("varchar(15)")
-                        .HasDefaultValue("Ordered");
+                        .HasDefaultValue("Confirmed");
 
                     b.HasKey("Id");
 
