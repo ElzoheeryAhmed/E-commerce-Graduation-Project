@@ -30,7 +30,7 @@ namespace GraduationProject.Configurations.EntityTypeConfigurations
                 .HasColumnType("varchar(15)");
 
             builder.Property(b => b.Status)
-                .HasDefaultValue(OrderStatus.Ordered);
+                .HasDefaultValue(OrderStatus.Confirmed);
 
             //OrderDate
             builder.Property(b => b.OrderDate)
