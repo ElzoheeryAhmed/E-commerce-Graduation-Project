@@ -21,8 +21,8 @@ namespace GraduationProject.Controllers
         [HttpGet(template: "GetAll")]
         public async Task<IActionResult> GetAllAsync()
         {
-            
-            var orders = await _context.Orders.Include(itm => itm.OrderItems).ToListAsync();
+
+            var orders = await _context.Orders.Include(itm => itm.OrderItems).ThenInclude(p => p.Product).ToListAsync();
             List<OrderAdminDto> Odtos = new List<OrderAdminDto>();
             foreach (var order in orders)
             {
@@ -65,7 +65,7 @@ namespace GraduationProject.Controllers
                 return BadRequest(error: "Invalid customer Id !");
             }
 
-            var orders=await  _context.Orders.Where(c=>c.CustomerId==id).Include(itm=>itm.OrderItems).ToListAsync();
+            var orders = await _context.Orders.Where(c => c.CustomerId == id).Include(itm => itm.OrderItems).ThenInclude(p => p.Product).ToListAsync();
             List<OrderDetailsDto> Odtos=new List<OrderDetailsDto>(); 
             foreach (var order in orders)
             {
