@@ -1,13 +1,10 @@
-using System.Configuration;
 using GraduationProject.Configurations;
-using GraduationProject.Controllers.Helpers;
 using GraduationProject.Data;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 Console.WriteLine("Setting up the backend server...");
@@ -57,13 +54,32 @@ builder.Services.AddDbContext<AppDbContext>(options => {
 
 // Configuring Identity.
 builder.Services.AddIdentity<User, IdentityRole>()
-	.AddEntityFrameworkStores<AppDbContext>();
-	
+	.AddEntityFrameworkStores<AppDbContext>()
+	.AddDefaultTokenProviders();
+//Configure some configuration
 
-//map JWT home Settings
-builder.Services.Configure<JWT>(_config.GetSection("JWT"));
+// Configuring Authentication.
+builder.Services.AddAuthentication(); //options =>
+//{
+//	options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//	options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//	options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
 
-
+//// Adding Jwt Bearer
+//.AddJwtBearer(options =>
+// {
+//	 options.SaveToken = true;
+//	 options.RequireHttpsMetadata = false;
+//	 options.TokenValidationParameters = new TokenValidationParameters()
+//	 {
+//		 ValidateIssuer = true,
+//		 ValidateAudience = true,
+//		 ValidAudience = configuration["JWT:ValidAudience"],
+//		 ValidIssuer = configuration["JWT:ValidIssuer"],
+//		 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]))
+//	 };
+// });
 
 var app = builder.Build();
 
