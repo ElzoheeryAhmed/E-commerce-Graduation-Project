@@ -70,9 +70,20 @@ namespace GraduationProject.Controllers
             }
         }*/
 
+        [HttpGet]
+        public async Task<IActionResult> LoginAsync([FromBody] RequestTokenDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var result = await _authService.GetTokenAsync(dto);
+
+            if (!result.IsAuthenticated)
+                return BadRequest(result.Message); //return only the error message
+
+            return Ok(new { Username=result.Username,ExpireDate=result.ExpiresOn,Roles=result.Roles,token=result.Token}); //We can  exclude the message from the result, it will be always empty 
+        }
         [HttpPost]
-        
         public async Task<IActionResult> RegisterAsync([FromBody] UserRegisterDto userdto)
         {
             
@@ -88,8 +99,8 @@ namespace GraduationProject.Controllers
                 return BadRequest(result.Message);
 
 
-            return Ok(result);
-            
+            return Ok(new { Username = result.Username, ExpireDate = result.ExpiresOn, Roles = result.Roles, token = result.Token }); //We can  exclude the message from the result, it will be always empty
+
         }
 
     }
