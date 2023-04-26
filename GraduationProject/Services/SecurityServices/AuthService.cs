@@ -74,7 +74,40 @@ namespace GraduationProject.Services.SecurityServices
                 Username = user.UserName
             };
         }
-            
+
+        //GetToken method
+        public async Task<AuthModel> GetTokenAsync(RequestTokenDto dto)
+        {
+            var authModel = new AuthModel();
+
+            //check if there is a user with this email or not 
+            //if user is null, then Email is incorrect---unless email is exist with user 
+            //after email is exist, we will check that the user with this email have the
+            //same password as the sent in the request          
+            var user = await _userManager.FindByEmailAsync(dto.Email);
+
+            if (user is null || !await _userManager.CheckPasswordAsync(user, dto.Password))
+            {
+                //Annonomous message
+                authModel.Message = "Email or Password is incorrect!";
+                return authModel;
+            }
+            //get jwtsecuritytoken object 
+            var jwtSecurityToken = await CreateJwtToken(user);
+            //get user roles I didn`t know if we need it  here or not 
+            var rolesList = await _userManager.GetRolesAsync(user);
+
+            authModel.IsAuthenticated = true;
+            authModel.Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken); //retrive token as string 
+            authModel.Email = user.Email;
+            authModel.Username = user.UserName;
+            authModel.ExpiresOn = jwtSecurityToken.ValidTo;
+            authModel.Roles = rolesList.ToList();
+
+            return authModel;
+
+        }
+
         //private method used only be register and login methods
         private async Task<JwtSecurityToken> CreateJwtToken(User user)
         {
@@ -103,7 +136,7 @@ namespace GraduationProject.Services.SecurityServices
                 issuer: _jwt.Issuer,
                 audience: _jwt.Audience,
                 claims: claims,
-                expires: DateTime.Now.AddHours(_jwt.DurationInHours),
+                expires: DateTime.Now.AddHours(_jwt.DurationInHours), //return datetime object with value: currentTime+ expire period
                 signingCredentials: signingCredentials);
 
             return jwtSecurityToken;
@@ -111,5 +144,6 @@ namespace GraduationProject.Services.SecurityServices
 
         }
         
+
     }
 }
