@@ -5,6 +5,10 @@
     {
         //Register task
         Task<AuthModel> RegisterAsync(UserRegisterDto dto);
-        
+
+
+        //GetToken task
+        Task<AuthModel> GetTokenAsync(RequestTokenDto dto);
+
     }
 }
