@@ -2,6 +2,7 @@ using AutoMapper;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
+using GraduationProject.Services.SecurityServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,14 +18,17 @@ namespace GraduationProject.Controllers
         private readonly SignInManager<User> _signInManager;
 		private readonly IMapper _mapper;
 		private readonly ILogger<UserController> _logger;
-		public UserController(IUnitOfWork unitOfWork, UserManager<User> userManager, SignInManager<User> signInManager, IMapper mapper, ILogger<UserController> logger)
+        private readonly IAuthService _authService;
+		public UserController(IUnitOfWork unitOfWork, UserManager<User> userManager, SignInManager<User> signInManager, IMapper mapper, ILogger<UserController> logger, IAuthService authService)
 		{
 			_unitOfWork = unitOfWork;
             _userManager = userManager;
             _signInManager = signInManager;
 			_mapper = mapper;
 			_logger = logger;
-		}
+            _authService = authService;
+
+        }
 
         [HttpGet]
         [Route("users/getAllUsers")]
@@ -32,7 +36,8 @@ namespace GraduationProject.Controllers
         {
             return Ok(_mapper.Map<IList<UserCreateDto>>(await _userManager.Users.ToListAsync()));
         }
-        
+
+        /*
         
 		[HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -63,6 +68,29 @@ namespace GraduationProject.Controllers
                 _logger.LogError(ex, "An error occurred while registering a new user with email: " + userDto.Email);
                 return Problem($"An error occurred while registering a new user with email: " + userDto.Email, statusCode: 500);
             }
+        }*/
+
+
+        [HttpPost]
+        
+        public async Task<IActionResult> RegisterAsync([FromBody] UserRegisterDto userdto)
+        {
+            
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+
+            var result = await _authService.RegisterAsync(userdto);
+            if (!result.IsAuthenticated)
+                return BadRequest(result.Message);
+
+
+            return Ok(result);
+            
         }
+
     }
 }
