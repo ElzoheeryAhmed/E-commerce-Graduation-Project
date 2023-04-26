@@ -1,3 +1,4 @@
+using System.Configuration;
 using GraduationProject.Configurations;
 using GraduationProject.Data;
 using GraduationProject.IRepository;
@@ -5,7 +6,13 @@ using GraduationProject.Models;
 using GraduationProject.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using GraduationProject.Controllers.Helpers;
+using GraduationProject.Services.SecurityServices;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 Console.WriteLine("Setting up the backend server...");
 
@@ -54,32 +61,36 @@ builder.Services.AddDbContext<AppDbContext>(options => {
 
 // Configuring Identity.
 builder.Services.AddIdentity<User, IdentityRole>()
-	.AddEntityFrameworkStores<AppDbContext>()
-	.AddDefaultTokenProviders();
-//Configure some configuration
+	.AddEntityFrameworkStores<AppDbContext>();
+	
 
-// Configuring Authentication.
-builder.Services.AddAuthentication(); //options =>
-//{
-//	options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//	options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//	options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-//})
+//map JWT home Settings
+builder.Services.Configure<JWT>(_config.GetSection("JWT"));
 
-//// Adding Jwt Bearer
-//.AddJwtBearer(options =>
-// {
-//	 options.SaveToken = true;
-//	 options.RequireHttpsMetadata = false;
-//	 options.TokenValidationParameters = new TokenValidationParameters()
-//	 {
-//		 ValidateIssuer = true,
-//		 ValidateAudience = true,
-//		 ValidAudience = configuration["JWT:ValidAudience"],
-//		 ValidIssuer = configuration["JWT:ValidIssuer"],
-//		 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]))
-//	 };
-// });
+//register AuthService class in service container
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+//add default configuration for authentication schema rather than explict define for each end point
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+                .AddJwtBearer(o =>
+                {
+                    o.RequireHttpsMetadata = false;
+                    o.SaveToken = false;
+                    o.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidIssuer = _config["JWT:Issuer"],
+                        ValidAudience = _config["JWT:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:Key"]))
+                    };
+                });
 
 var app = builder.Build();
 
@@ -94,7 +105,7 @@ if (app.Environment.IsDevelopment()) {
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
