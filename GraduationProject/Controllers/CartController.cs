@@ -18,7 +18,7 @@ namespace GraduationProject.Controllers
         }
 
         [HttpGet]   
-        public async Task<IActionResult> GetCartItemsbyIdAsync(string id)
+        public async Task<IActionResult> GetContentAsync(string id)
         {
             //Validation of CustomerId
             var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == id);
@@ -28,26 +28,26 @@ namespace GraduationProject.Controllers
             }
 
 
-            var items = await _context.CartItems.Where(c=>c.CustomerId==id).Include(p => p.Product).ToListAsync();
-            List <CartItemDetailsDto> cartItemsdto=new List<CartItemDetailsDto> ();
-            foreach (var item in items) { 
-                var itemdto = new CartItemDetailsDto();   
-                itemdto.ProductId=item.ProductId;   
-                itemdto.Title=item.Product.Title;   
-                itemdto.HighResImageURLs = item.Product.HighResImageURLs;   
-                itemdto.Price=item.Product.Price;
-                itemdto.Quantity = item.Quantity;
+            var items = await _context.CartItems
+                .Where(c=>c.CustomerId==id)
+                .Include(p => p.Product)
+                .Select(i=>new CartItemDetailsDto{
+                    
+                    ProductId = i.ProductId,
+                    Title = i.Product.Title,
+                    HighResImageURLs = i.Product.HighResImageURLs,
+                    Price = i.Product.Price,
+                    Quantity = i.Quantity
 
-                cartItemsdto.Add(itemdto);
-
-            }
-
-            return Ok(cartItemsdto);
+                })
+                .ToListAsync();
+           
+            return Ok(items);
 
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateCartItemAsync( [FromBody] CartItemDto dto )
+        public async Task<IActionResult> AddItemAsync( [FromBody] CartItemDto dto )
         {
             //Validation of CustomerId
             var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == dto.CustomerId);
@@ -63,7 +63,13 @@ namespace GraduationProject.Controllers
                 return BadRequest(error: $"Invalid Product Id:{dto.ProductId}");
             }
 
-            var cartItem = new CartItem() { CustomerId = dto.CustomerId, ProductId=dto.ProductId,Quantity=dto.Quantity };
+            var cartItem = new CartItem() {
+                
+                CustomerId = dto.CustomerId,
+                ProductId=dto.ProductId,
+                Quantity=dto.Quantity 
+            
+            };
 
 
             //Add to database 
@@ -79,38 +85,57 @@ namespace GraduationProject.Controllers
         public async Task<IActionResult> UpdateQuantityAsync([FromBody] CartItemDto dto)
         {
             //Validation of CartItem
-            var Item = await _context.CartItems.SingleOrDefaultAsync(i=>i.CustomerId==dto.CustomerId&&i.ProductId==dto.ProductId);
-            if (Item==null)
+            var item = await _context.CartItems.FindAsync(dto.CustomerId, dto.ProductId);
+            if (item is null)
             {
-                return BadRequest(error: "Invalid cart item !");
+                return NotFound();
             }
 
-            Item.Quantity = dto.Quantity;
+            item.Quantity = dto.Quantity;
 
 
             //Add to database 
-             _context.CartItems.Update(Item);
             _context.SaveChanges();
 
-            return Ok(Item); 
+            return Ok(item); 
         }
 
 
-        [HttpDelete]
-        public async Task<IActionResult> DeletecartItemAsync([FromBody] CartItemkeyDto dto)
+        [HttpDelete(template: "DeleteItem")]
+        public async Task<IActionResult> DeleteItemAsync([FromBody] CartItemIdentifyDto dto)
         {
             //Validation of CartItem
-            var Item = await _context.CartItems.SingleOrDefaultAsync(i => i.CustomerId == dto.CustomerId && i.ProductId == dto.ProductId);
-            if (Item == null)
+            var item = await _context.CartItems.FindAsync(dto.CustomerId, dto.ProductId);
+            if (item is  null)
             {
-                return BadRequest(error: "Invalid cart item !");
+                return NotFound();
             }
 
-            _context.CartItems.Remove(Item);
+            _context.CartItems.Remove(item);
             _context.SaveChanges();
 
 
-            return Ok(Item);
+            return Ok(item);
         }
+
+
+        [HttpDelete(template: "DeleteAll")]
+        public async Task<IActionResult> DeleteAllItemsAsync(string id)
+        {
+            var cartItems = await _context.CartItems.Where(i => i.CustomerId == id).ToListAsync();
+
+            //Check cart content
+            if (cartItems is null)
+            {
+                return BadRequest(error:"Cart is already empty");
+            }
+
+            _context.CartItems.RemoveRange(cartItems);
+            _context.SaveChanges();
+
+            return Ok(cartItems);
+
+        }
+
     }
 }
