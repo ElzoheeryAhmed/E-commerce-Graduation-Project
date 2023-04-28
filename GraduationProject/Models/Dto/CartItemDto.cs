@@ -12,7 +12,7 @@
 
     }
 
-    public class CartItemkeyDto
+    public class CartItemIdentifyDto
     {
 
         public string ProductId { get; set; }
