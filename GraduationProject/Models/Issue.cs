@@ -3,13 +3,14 @@
 
     public enum IssueStatus : byte
     {
-        Submitted, InProgress, Rejected, Completed
+        Submitted, Responded, Resolved
     }
     public class Issue
     {
 
         public int Id { get; set; }
         public string Description { get; set; }
+        public string Response { get; set; }
 
         public DateTime SubmitDate { get; set; }
         public DateTime? RespondDate { get; set; }
@@ -19,6 +20,6 @@
 
 
 
-        public User RespondAdmin { get; set; }
+        public User RespondingAdmin { get; set; }
     }
 }
