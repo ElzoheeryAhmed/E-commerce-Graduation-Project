@@ -22,8 +22,29 @@ namespace GraduationProject.Controllers
         public async Task<IActionResult> GetAllAsync()
         {
 
-            var orders = await _context.Orders.Include(itm => itm.OrderItems).ThenInclude(p => p.Product).ToListAsync();
-            List<OrderAdminDto> Odtos = new List<OrderAdminDto>();
+            var orders = await _context.Orders
+                .Include(itm => itm.OrderItems)
+                .ThenInclude(p => p.Product)
+                .Select(o=>new OrderAdminDto
+                {
+                    Id=o.Id,    
+                    CustomerId=o.CustomerId,
+                    Status=o.Status.ToString(),
+                    OrderDate=o.OrderDate,
+                    ReceiptDate=o.ReceiptDate,
+                    ShippingAddress=o.ShippingAddress,
+                    OrderItems= o.OrderItems.Select(i=>new OrderItemDetailsDto
+                    {
+                        ProductId=i.ProductId,
+                        Title=i.Product.Title,
+                        HighResImageURLs=i.Product.HighResImageURLs,
+                        Price= i.Product.Price,
+                        Quantity = i.Quantity
+
+                    }).ToList() 
+                } )
+                .ToListAsync();
+            /*List<OrderAdminDto> Odtos = new List<OrderAdminDto>();
             foreach (var order in orders)
             {
                 var Odto = new OrderAdminDto();
@@ -51,22 +72,43 @@ namespace GraduationProject.Controllers
                 Odtos.Add(Odto);
 
             }
-
-            return Ok(Odtos);
+            */
+            return Ok(orders);
         }
 
-        [HttpGet(template: "GetbyId/{id}")]
-        public async Task<IActionResult> GetOrdersAsync(string id)
+        [HttpGet(template: "GetbyId/{customerId}")]
+        public async Task<IActionResult> GetOrdersAsync(string customerId)
         {
             //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == id);
+            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == customerId);
             if (!isValidCustomer)
             {
                 return BadRequest(error: "Invalid customer Id !");
             }
 
-            var orders = await _context.Orders.Where(c => c.CustomerId == id).Include(itm => itm.OrderItems).ThenInclude(p => p.Product).ToListAsync();
-            List<OrderDetailsDto> Odtos=new List<OrderDetailsDto>(); 
+            var orders = await _context.Orders
+                .Where(c => c.CustomerId == customerId)
+                .Include(itm => itm.OrderItems)
+                .ThenInclude(p => p.Product)
+                .Select(o => new OrderDetailsDto
+                {
+                    Id = o.Id,
+                    Status = o.Status.ToString(),
+                    OrderDate = o.OrderDate,
+                    ReceiptDate = o.ReceiptDate,
+                    ShippingAddress = o.ShippingAddress,
+                    OrderItems = o.OrderItems.Select(i => new OrderItemDetailsDto
+                    {
+                        ProductId = i.ProductId,
+                        Title = i.Product.Title,
+                        HighResImageURLs = i.Product.HighResImageURLs,
+                        Price = i.Product.Price,
+                        Quantity = i.Quantity
+
+                    }).ToList()
+                })
+                .ToListAsync();
+            /*List<OrderDetailsDto> Odtos=new List<OrderDetailsDto>(); 
             foreach (var order in orders)
             {
                 var Odto =new OrderDetailsDto();
@@ -93,11 +135,12 @@ namespace GraduationProject.Controllers
                 Odtos.Add(Odto);
 
             }
+            */
 
-            return Ok(Odtos);    
+            return Ok(orders);    
         }
 
-        [HttpPost]
+        [HttpPost(template:"AddOrder")]
         public async  Task<IActionResult> CreateOrderAsync([FromBody] OrderDto dto)
         {
 
@@ -134,16 +177,17 @@ namespace GraduationProject.Controllers
            
         }
 
-        [HttpPut(template: "ShippingAddress/{id}")]
-        public async Task<IActionResult> UpdateShippingAddressAsync(int id, [FromBody] string shippingAddress)
+        [HttpPut(template: "ShippingAddress")]
+        public async Task<IActionResult> UpdateShippingAddressAsync([FromBody]int orderId, [FromBody] string shippingAddress)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.FindAsync(orderId);
 
             if (order == null)
             {
                 return NotFound("Order is not found");
             }
 
+            //if order overtakes confirmed state you can`t change its states
             if (order.Status != OrderStatus.Confirmed) {
                 return BadRequest($"Order is already {order.Status} can`t change the shipping address");
             }
@@ -151,7 +195,6 @@ namespace GraduationProject.Controllers
             order.ShippingAddress = shippingAddress;
 
             //Adding to database
-            _context.Orders.Update(order);
             _context.SaveChanges();
 
 
@@ -160,10 +203,10 @@ namespace GraduationProject.Controllers
 
         }
        
-        [HttpPut(template: "Ship/{id}")]
-        public async Task<IActionResult> ShipOrderAsync(int id)
+        [HttpPut(template: "Ship/{orderId}")]
+        public async Task<IActionResult> ShipOrderAsync(int orderId)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.FindAsync(orderId);
 
             if (order == null)
             {
@@ -179,7 +222,6 @@ namespace GraduationProject.Controllers
             else { order.Status = OrderStatus.Shipped; }
 
             //Adding to database
-            _context.Orders.Update(order);
             _context.SaveChanges();
 
 
@@ -188,16 +230,20 @@ namespace GraduationProject.Controllers
 
         }
 
-        [HttpPut(template: "Receipt/{id}")]
-        public async Task<IActionResult> ReceiptOrderAsync(int id)
+        [HttpPut(template: "Receipt/{orderId}")]
+        public async Task<IActionResult> ReceiptOrderAsync(int orderId)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.FindAsync(orderId);
 
             if (order == null)
             {
                 return NotFound($"Order is not found");
             }
+            if (order.Status == OrderStatus.Receipted)
+            {
+                return BadRequest($"Order is already Receipted");
 
+            }
             if (order.Status != OrderStatus.Shipped)
             {
                 return BadRequest($"Order is {order.Status.ToString()} can`t mark it Receipted");
@@ -207,7 +253,6 @@ namespace GraduationProject.Controllers
             else { order.Status = OrderStatus.Receipted; }
 
             //Adding to database
-            _context.Orders.Update(order);
             _context.SaveChanges();
 
 
@@ -216,10 +261,10 @@ namespace GraduationProject.Controllers
 
         }
 
-        [HttpPut(template: "Cancel/{id}")]
-        public async Task<IActionResult> CancelOrderAsync(int id)
+        [HttpPut(template: "Cancel/{orderId}")]
+        public async Task<IActionResult> CancelOrderAsync(int orderId)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.FindAsync(orderId);
 
             if (order == null)
             {
@@ -235,7 +280,6 @@ namespace GraduationProject.Controllers
             else { order.Status = OrderStatus.Cancelled; }
 
             //Adding to database
-            _context.Orders.Update(order);
             _context.SaveChanges();
 
 
@@ -244,10 +288,10 @@ namespace GraduationProject.Controllers
 
         }
 
-        [HttpPut(template: "return/{id}")  ]
-        public async Task<IActionResult> returnOrderAsync(int id)
+        [HttpPut(template: "Return/{orderId}")  ]
+        public async Task<IActionResult> ReturnOrderAsync(int orderId)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.FindAsync(orderId);
 
             if (order == null)
             {
@@ -263,7 +307,6 @@ namespace GraduationProject.Controllers
             else { order.Status = OrderStatus.Returned; }
 
             //Adding to database
-            _context.Orders.Update(order);
             _context.SaveChanges();
 
 
