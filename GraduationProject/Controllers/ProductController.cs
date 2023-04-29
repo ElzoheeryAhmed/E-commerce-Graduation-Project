@@ -59,14 +59,14 @@ namespace GraduationProject.Controllers
 				filterExpression.AddRange(ProductHelper.GetProductFilters(recordFilters));
 				
 				// We don't want to return the BrandId in the response as it is already returned in the Brand entity.
-				if (fieldsFilters.FieldsToExclude != null) {
-					if (!fieldsFilters.FieldsToExclude.Contains("BrandId"))
-						fieldsFilters.FieldsToExclude += ",BrandId";
-				}
+				// if (fieldsFilters.FieldsToExclude != null) {
+				// 	if (!fieldsFilters.FieldsToExclude.Contains("BrandId"))
+				// 		fieldsFilters.FieldsToExclude += ",BrandId";
+				// }
 				
-				else {
-					fieldsFilters.FieldsToExclude = "BrandId";
-				}
+				// else {
+				// 	fieldsFilters.FieldsToExclude = "BrandId";
+				// }
 				
 				// Dynamically create a select expression based on the fields to include and exclude instead of returning all the fields from the Db and filter them afterwards.
 				Expression<Func<Product, Product>> selectExpression = QueryableExtensions<Product>.EntityFieldsSelector(fieldsFilters);
@@ -110,14 +110,14 @@ namespace GraduationProject.Controllers
 			try {
 				List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(fieldsFilters);
 				
-				if (fieldsFilters.FieldsToExclude != null) {
-					if (!fieldsFilters.FieldsToExclude.Contains("BrandId"))
-						fieldsFilters.FieldsToExclude += ",BrandId";
-				}
+				// if (fieldsFilters.FieldsToExclude != null) {
+				// 	if (!fieldsFilters.FieldsToExclude.Contains("BrandId"))
+				// 		fieldsFilters.FieldsToExclude += ",BrandId";
+				// }
 				
-				else {
-					fieldsFilters.FieldsToExclude = "BrandId";
-				}
+				// else {
+				// 	fieldsFilters.FieldsToExclude = "BrandId";
+				// }
 				
 				// Dynamically create a select expression based on the fields to include and exclude instead of returning all the fields from the Db and filter them afterwards.
 				Expression<Func<Product, Product>> selectExpression = QueryableExtensions<Product>.EntityFieldsSelector(fieldsFilters);
