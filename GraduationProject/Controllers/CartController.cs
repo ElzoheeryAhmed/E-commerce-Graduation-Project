@@ -17,7 +17,7 @@ namespace GraduationProject.Controllers
             _context = context;
         }
 
-        [HttpGet]   
+        [HttpGet(template: "GetContent/{id}")]   
         public async Task<IActionResult> GetContentAsync(string id)
         {
             //Validation of CustomerId
@@ -46,7 +46,7 @@ namespace GraduationProject.Controllers
 
         }
 
-        [HttpPost]
+        [HttpPost(template:"AddItem")]
         public async Task<IActionResult> AddItemAsync( [FromBody] CartItemDto dto )
         {
             //Validation of CustomerId
@@ -81,7 +81,7 @@ namespace GraduationProject.Controllers
         }
 
 
-        [HttpPut]
+        [HttpPut(template:"UpdateQuantity")]
         public async Task<IActionResult> UpdateQuantityAsync([FromBody] CartItemDto dto)
         {
             //Validation of CartItem
@@ -119,7 +119,7 @@ namespace GraduationProject.Controllers
         }
 
 
-        [HttpDelete(template: "DeleteAll")]
+        [HttpDelete(template: "DeleteAll/{id}")]
         public async Task<IActionResult> DeleteAllItemsAsync(string id)
         {
             var cartItems = await _context.CartItems.Where(i => i.CustomerId == id).ToListAsync();
