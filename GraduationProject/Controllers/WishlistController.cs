@@ -36,7 +36,7 @@ namespace GraduationProject.Controllers
         }
 
         [HttpGet(template:"GetContent")]
-        public async Task<IActionResult> GetContentasync(string id,string name)
+        public async Task<IActionResult> GetContentasync([FromBody]string id,[FromBody]string name)
         {
             var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == id && i.Name == name).Include(i => i.Product)
                 .Select(i => new WishlistItemDetailsDto {
@@ -61,7 +61,7 @@ namespace GraduationProject.Controllers
 
 
 
-        [HttpPost]  
+        [HttpPost(template:"AddItem")]  
         public async Task<IActionResult> AddItemAsync([FromBody] WishlistItemDto dto)
         {
 
@@ -94,7 +94,7 @@ namespace GraduationProject.Controllers
             return Ok(wishlistitem);
         }
 
-        [HttpPut]
+        [HttpPut(template: "UpdateQuantity")]
         public async Task<IActionResult> UpdateQuantityAsync([FromBody] WishlistItemDto dto)
         {
             var wishlistItem = await _context.WishlistItems.FindAsync(dto.CustomerId, dto.ProductId, dto.Name);
@@ -129,7 +129,7 @@ namespace GraduationProject.Controllers
         }
        
         [HttpDelete(template: "DeleteWishlist")]
-        public async Task<IActionResult> DeleteWishlistAsync(string id, string name)
+        public async Task<IActionResult> DeleteWishlistAsync([FromBody] string id,[FromBody] string name)
         {
             var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == id && i.Name == name)
                 .ToListAsync();
