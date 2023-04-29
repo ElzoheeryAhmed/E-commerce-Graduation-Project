@@ -1,4 +1,6 @@
-﻿using Microsoft.Build.Framework;
+﻿//using Microsoft.Build.Framework;
+
+using System.ComponentModel.DataAnnotations;
 
 namespace GraduationProject.Services.SecurityServices
 {
