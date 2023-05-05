@@ -1,11 +1,9 @@
 
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GraduationProject.Models.Dto
 {
-    public class RatingCreateDto
-    {
+    public class RatingCreateDto {
         [Required]
         public string UserId { get; set; }
         [Required]
@@ -16,13 +14,11 @@ namespace GraduationProject.Models.Dto
         public double RatingValue { get; set; }
     }
     
-    public class RatingDto : RatingCreateDto
-    {
+    public class RatingDto : RatingCreateDto {
         public DateTime Timestamp { get; set; }
     }
     
-    public class RatingUpdateDto
-    {
+    public class RatingUpdateDto {
         public string UserId { get; set; }
         public string ProductId { get; set; }
         
