@@ -4,12 +4,9 @@ using Newtonsoft.Json;
 
 namespace GraduationProject.Utils
 {
-    public class RatingSeeder
-    {
-        public static List<RatingDto> Seed(string? jsonFilePath)
-		{
-			if (jsonFilePath == null)
-			{
+    public class RatingSeeder {
+        public static List<RatingDto> Seed(string? jsonFilePath) {
+			if (jsonFilePath == null) {
 				jsonFilePath = Path.Combine(Environment.CurrentDirectory,
 											"Data",
 											"InitialSeed",
@@ -17,8 +14,7 @@ namespace GraduationProject.Utils
 			}
 
 			// Parsing the json file and creating the appropriate objects.
-			using (StreamReader r = new StreamReader(jsonFilePath))
-			{
+			using (StreamReader r = new StreamReader(jsonFilePath)) {
 				// Parse the JSON into a dynamic object.
 				Dictionary<string, Dictionary<string, object>> extractedRatings = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(r.ReadToEnd());
 
@@ -27,11 +23,9 @@ namespace GraduationProject.Utils
 
 				// int counter = 0;
                 Random random = new Random();
-				foreach (var key in extractedRatings["userID"])
-				{
+				foreach (var key in extractedRatings["userID"]) {
 					// Creating a Rating object.
-					RatingDto rating = new RatingDto
-					{
+					RatingDto rating = new RatingDto {
 						UserId = key.Value.ToString(),
 						ProductId = extractedRatings["itemID"][key.Key].ToString().Trim(),
 						RatingValue = Convert.ToInt32(extractedRatings["rating"][key.Key]),
