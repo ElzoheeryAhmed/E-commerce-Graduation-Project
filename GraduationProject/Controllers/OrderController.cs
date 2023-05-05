@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using GraduationProject.Data;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
@@ -178,7 +178,8 @@ namespace GraduationProject.Controllers
         }
 
         [HttpPut(template: "ShippingAddress")]
-        public async Task<IActionResult> UpdateShippingAddressAsync([FromBody]int orderId, [FromBody] string shippingAddress)
+        // public async Task<IActionResult> UpdateShippingAddressAsync([FromBody]int orderId, [FromBody] string shippingAddress)
+        public async Task<IActionResult> UpdateShippingAddressAsync(int orderId, [FromBody] string shippingAddress)
         {
             var order = await _context.Orders.FindAsync(orderId);
 
