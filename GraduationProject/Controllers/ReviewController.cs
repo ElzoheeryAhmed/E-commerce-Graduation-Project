@@ -38,7 +38,7 @@ namespace GraduationProject.Controllers
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 		public async Task<IActionResult> GetReviewsByProduct([FromQuery] string productId, [FromQuery] PagingFilter pagingFilter, [FromQuery] string? orderBy = null) {
 			try {
-				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,UserId,ReviewText,Timestamp",  FieldsToExclude = "User,Product,ProductId" };
+				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,UserId,ReviewText,Timestamp,SentimentScore",  FieldsToExclude = "User,Product,ProductId" };
 				Expression<Func<Review, Review>> selectExpression = QueryableExtensions<Review>.EntityFieldsSelector(fieldsFilters);
 				
 				var reviews = await _unitOfWork.Reviews.GetAllAsync(new List<Expression<Func<Review, bool>>>() { r => r.ProductId == productId }, pagingFilter, true, selectExpression: selectExpression, orderBy: orderBy);
@@ -77,7 +77,7 @@ namespace GraduationProject.Controllers
 			try {
 				var reviews = await _unitOfWork.Reviews.GetAllAsync(
 					new List<Expression<Func<Review, bool>>>() { r => r.UserId == userId && r.ProductId == productId },
-					selectExpression: r => new Review { Id = r.Id, ReviewText = r.ReviewText, Timestamp = r.Timestamp }, orderBy: orderBy);
+					selectExpression: r => new Review { Id = r.Id, ReviewText = r.ReviewText, Timestamp = r.Timestamp , SentimentScore = r.SentimentScore }, orderBy: orderBy);
 				
 				if (reviews == null) {
 					_logger.LogWarning($"Failed GET attempt in {nameof(GetProductReviewsByUser)}. Could not find any reviews for userId={userId} and productId={productId}.");
@@ -109,7 +109,7 @@ namespace GraduationProject.Controllers
 			try {
 				var review = await _unitOfWork.Reviews.GetByAsync(
 					r => r.Id == id,
-					selectExpression: r => new Review { Id = r.Id, UserId = r.UserId, ProductId = r.ProductId, ReviewText = r.ReviewText, Timestamp = r.Timestamp });
+					selectExpression: r => new Review { Id = r.Id, UserId = r.UserId, ProductId = r.ProductId, ReviewText = r.ReviewText, Timestamp = r.Timestamp, SentimentScore = r.SentimentScore });
 				
 				if (review == null) {
 					_logger.LogWarning($"Failed GET attempt in {nameof(GetProductReviewsByUser)}. Could not find a review with id={id}.");
@@ -146,6 +146,8 @@ namespace GraduationProject.Controllers
 			
 			try {
 				var review = _mapper.Map<Review>(reviewDto);
+				
+				//TODO: Find the SentimentScore of the review.
 				
 				await _unitOfWork.Reviews.InsertAsync(review);
 				
@@ -186,7 +188,7 @@ namespace GraduationProject.Controllers
 			try {
 				var review = _mapper.Map<Review>(reviewDto);
 				
-				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,ReviewText,Timestamp,UserId,ProductId",  FieldsToExclude = "User,Product" };
+				EntityFieldsFilter fieldsFilters = new EntityFieldsFilter() { OnlySelectFields = "Id,ReviewText,Timestamp,UserId,ProductId,SentimentScore",  FieldsToExclude = "User,Product" };
 				Expression<Func<Review, Review>> selectExpression = QueryableExtensions<Review>.EntityFieldsSelector(fieldsFilters);
 				
 				var existingReview = await _unitOfWork.Reviews.GetByAsync(r => r.Id == id, selectExpression: selectExpression);
