@@ -1,4 +1,4 @@
-using System.Configuration;
+using System.Reflection;
 using GraduationProject.Configurations;
 using GraduationProject.Data;
 using GraduationProject.IRepository;
@@ -6,13 +6,12 @@ using GraduationProject.Models;
 using GraduationProject.Repository;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using GraduationProject.Controllers.Helpers;
 using GraduationProject.Services.SecurityServices;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 Console.WriteLine("Setting up the backend server...");
 
@@ -22,9 +21,8 @@ IConfiguration _config = new ConfigurationBuilder()
 	.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
 	.Build();
 
-var builder = WebApplication.CreateBuilder(args);
-
 // Add services to the container.
+var builder = WebApplication.CreateBuilder(args);
 
 // Adding Serilog for logging.
 Log.Logger = new LoggerConfiguration()
@@ -52,7 +50,10 @@ builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen( options => {
+	var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+});
 
 // Configuring Entity Framework Core.
 builder.Services.AddDbContext<AppDbContext>(options => {
@@ -62,7 +63,7 @@ builder.Services.AddDbContext<AppDbContext>(options => {
 // Configuring Identity.
 builder.Services.AddIdentity<User, IdentityRole>()
 	.AddEntityFrameworkStores<AppDbContext>();
-	
+
 
 //map JWT home Settings
 builder.Services.Configure<JWT>(_config.GetSection("JWT"));
@@ -95,8 +96,7 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 Log.Information("The backend server has started.");
-Console.WriteLine("The backend server has started.");
-
+Console.WriteLine("The backend server has started at: https://localhost:7185/swagger/index.html");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment()) {
