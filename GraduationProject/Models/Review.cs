@@ -1,8 +1,7 @@
 
 namespace GraduationProject.Models
 {
-    public class Review
-    {
+    public class Review {
         public int Id { get; set; }
         public string UserId { get; set; }
         public User User { get; set; }
@@ -11,7 +10,7 @@ namespace GraduationProject.Models
         public Product Product { get; set; }
         
         public string ReviewText { get; set; }
-        
         public DateTime Timestamp { get; set; }
+        public int SentimentScore { get; set; }
     }
 }
