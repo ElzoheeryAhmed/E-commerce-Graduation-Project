@@ -27,6 +27,7 @@ namespace GraduationProject.Repository
 			// Create an IQueryable<TSource> object from the _db property, which represents the database table for type T.
 			IQueryable<TSource> query = _db;
 			
+			query = query.Where(expression);
 			
 			if (includeEntities != null) {
 				foreach (var entity in includeEntities) {
@@ -34,8 +35,6 @@ namespace GraduationProject.Repository
 					query = query.Include(entity);
 				}
 			}
-			
-			query = query.Where(expression);
 			
 			if (selectExpression != null) {
 				query = query.Select(selectExpression);
@@ -57,18 +56,22 @@ namespace GraduationProject.Repository
 
 		public async Task<IEnumerable<TSource>>? GetAllAsync(List<Expression<Func<TSource, bool>>>? expressions = null, IPagingFilter? pagingfilter=null, bool asNoTracking = false, List<string>? includeEntities = null, Expression<Func<TSource, TSource>>? selectExpression = null, string? orderBy = null) {
 			IQueryable<TSource> query = _db;
-
-			if (includeEntities != null) {
-				foreach (var entity in includeEntities) {
-					query = query.Include(entity);
-				}
-			}
 			
 			if (expressions != null) {
 				// https://stackoverflow.com/questions/4098343/entity-framework-where-method-chaining
 				foreach (var expression in expressions) {
 					query = query.Where(expression);
 				}
+			}
+			
+			if (includeEntities != null) {
+				foreach (var entity in includeEntities) {
+					query = query.Include(entity);
+				}
+			}
+			
+			if (!string.IsNullOrWhiteSpace(orderBy)) {
+				query = query.OrderBy(orderBy);
 			}
 			
 			if (selectExpression != null) {
@@ -78,10 +81,6 @@ namespace GraduationProject.Repository
 			// if (orderBy != null) {
 			// 	query = orderBy(query);
 			// }
-			
-			if (!string.IsNullOrWhiteSpace(orderBy)) {
-				query = query.OrderBy(orderBy);
-			}
 			
 			if (asNoTracking) {
 				query = query.AsNoTracking();
@@ -100,7 +99,11 @@ namespace GraduationProject.Repository
 
 		public async Task<TSource>? GetFieldByAsync(Expression<Func<TSource, bool>>? expression, Expression<Func<TSource, TSource>> fieldSelector, bool asNoTracking = false, string? includeEntity = null) {
 			IQueryable<TSource> query = _db;
-
+			
+			if (expression != null) {
+				query = query.Where(expression);
+			}
+			
 			if (includeEntity != null) {
 				query = query.Include(includeEntity);
 			}
@@ -114,7 +117,7 @@ namespace GraduationProject.Repository
 			}
 			
 			// Select the field that matches the selection criteria using the Select method.
-			return await query.Where(expression).Select(fieldSelector).FirstOrDefaultAsync();
+			return await query.Select(fieldSelector).FirstOrDefaultAsync();
 		}
 
 		public async Task<IEnumerable<TSource>>? GetFieldFromAllAsync(Expression<Func<TSource, TSource>> fieldSelector, Expression<Func<TSource, bool>>? expression = null, IPagingFilter? pagingfilter=null, bool asNoTracking = false, string? includeEntity = null, string? orderBy = null) {
