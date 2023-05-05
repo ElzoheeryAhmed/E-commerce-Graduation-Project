@@ -18,7 +18,7 @@ namespace GraduationProject.Data
 		public DbSet<ProductUpdate> ProductUpdates { get; set; }
 		
 		public DbSet<Rating> Ratings { get; set; }
-		public DbSet<Review> Review { get; set; }
+		public DbSet<Review> Reviews { get; set; }
 		
 		public DbSet<Issue> Issues { get; set; }
 		public DbSet<Order> Orders { get; set; }
