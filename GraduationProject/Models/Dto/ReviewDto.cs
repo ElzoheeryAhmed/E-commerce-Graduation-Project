@@ -16,6 +16,7 @@ namespace GraduationProject.Models.Dto
     public class ReviewDto : ReviewCreateDto {
         public int Id { get; set; }
         public DateTime Timestamp { get; set; }
+        public int SentimentScore { get; set; }
     }
     
     public class ReviewUpdateDto {
