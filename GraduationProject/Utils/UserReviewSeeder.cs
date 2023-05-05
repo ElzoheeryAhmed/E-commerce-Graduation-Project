@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Newtonsoft.Json;
 
 namespace GraduationProject.Utils
 {
-    public class UserReviewSeeder
-    {
-        public static List<string> FindMissingUsers()
-		{
+    public class UserReviewSeeder {
+        public static List<string> FindMissingUsers() {
             // Parsing addedDates.
             string jsonFilePath = Path.Combine(Environment.CurrentDirectory,
                                                 "Data",
