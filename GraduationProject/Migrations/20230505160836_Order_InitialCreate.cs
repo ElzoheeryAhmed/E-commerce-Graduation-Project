@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace GraduationProject.Migrations
 {
-    public partial class OrderInitialCreate : Migration
+    public partial class Order_InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -15,9 +15,10 @@ namespace GraduationProject.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Status = table.Column<string>(type: "varchar(15)", nullable: false, defaultValue: "Ordered"),
+                    Status = table.Column<string>(type: "varchar(15)", nullable: false, defaultValue: "Confirmed"),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     ReceiptDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ShippingAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CustomerId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
