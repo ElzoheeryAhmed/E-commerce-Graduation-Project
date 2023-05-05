@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GraduationProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230415170815_ProuctUpdate_InitialCreate")]
-    partial class ProuctUpdate_InitialCreate
+    [Migration("20230505150453_ProductUpdate_InitialCreate")]
+    partial class ProductUpdate_InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -73,6 +73,9 @@ namespace GraduationProject.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -115,15 +118,15 @@ namespace GraduationProject.Migrations
 
             modelBuilder.Entity("GraduationProject.Models.ProductCategoryJoin", b =>
                 {
-                    b.Property<int>("ProductCategoryId")
-                        .HasColumnType("int");
-
                     b.Property<string>("ProductId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("ProductCategoryId", "ProductId");
+                    b.Property<int>("ProductCategoryId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("ProductId");
+                    b.HasKey("ProductId", "ProductCategoryId");
+
+                    b.HasIndex("ProductCategoryId");
 
                     b.ToTable("ProductCategoryJoins");
                 });
@@ -370,17 +373,21 @@ namespace GraduationProject.Migrations
 
             modelBuilder.Entity("GraduationProject.Models.ProductCategoryJoin", b =>
                 {
-                    b.HasOne("GraduationProject.Models.ProductCategory", null)
-                        .WithMany()
+                    b.HasOne("GraduationProject.Models.ProductCategory", "ProductCategory")
+                        .WithMany("Products")
                         .HasForeignKey("ProductCategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("GraduationProject.Models.Product", null)
-                        .WithMany()
+                    b.HasOne("GraduationProject.Models.Product", "Product")
+                        .WithMany("ProductCategories")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductCategory");
                 });
 
             modelBuilder.Entity("GraduationProject.Models.ProductUpdate", b =>
@@ -454,6 +461,16 @@ namespace GraduationProject.Migrations
                 });
 
             modelBuilder.Entity("GraduationProject.Models.Brand", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.Product", b =>
+                {
+                    b.Navigation("ProductCategories");
+                });
+
+            modelBuilder.Entity("GraduationProject.Models.ProductCategory", b =>
                 {
                     b.Navigation("Products");
                 });
