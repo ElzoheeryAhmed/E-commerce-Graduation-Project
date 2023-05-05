@@ -33,7 +33,7 @@ namespace GraduationProject.Controllers
 		/// <response code="200">Returns the ratings of the specified product.</response>
 		/// <response code="404">If the product does not exist.</response>
 		/// <response code="500">If something went wrong on the server.</response>
-       /* [HttpGet("{id}")]
+        [HttpGet("{id}")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -57,7 +57,7 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error.");
 			}
 		}
-        */
+        
 		/// <summary>
 		/// Get the rating of a product given by a user.
 		/// </summary>
@@ -197,6 +197,8 @@ namespace GraduationProject.Controllers
 				
 				_unitOfWork.Ratings.Update(rating);
 				
+				// _unitOfWork.Products.Update(product);
+				
 				await _unitOfWork.Save();
 				
 				return Ok(rating);
@@ -235,6 +237,8 @@ namespace GraduationProject.Controllers
 				Expression<Func<Rating, Rating>> selectExpression = QueryableExtensions<Rating>.EntityFieldsSelector(fieldsFilters);
 				
 				var rating = await _unitOfWork.Ratings.GetByAsync(r => r.ProductId == productId && r.UserId == userId, selectExpression: selectExpression);
+				
+				// var exists = await _unitOfWork.Ratings.ExistsAsync(r => r.UserId == userId && r.ProductId == productId);
 				
 				if (rating == null) {
 					_logger.LogInformation($"Invalid DELETE attempt in {nameof(DeleteRating)}. The user with id={userId} has not rated the product with product id={productId} yet.");
