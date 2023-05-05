@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace GraduationProject.Migrations
 {
-    public partial class ProuctUpdate_InitialCreate : Migration
+    public partial class ProductUpdate_InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
