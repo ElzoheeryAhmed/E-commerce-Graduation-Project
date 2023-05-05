@@ -1,4 +1,4 @@
-﻿using System.Xml.Linq;
+using System.Xml.Linq;
 using GraduationProject.Data;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
@@ -36,7 +36,8 @@ namespace GraduationProject.Controllers
         }
 
         [HttpGet(template:"GetContent")]
-        public async Task<IActionResult> GetContentasync([FromBody]string id,[FromBody]string name)
+        // public async Task<IActionResult> GetContentasync([FromBody]string id,[FromBody]string name)
+        public async Task<IActionResult> GetContentasync(string id,[FromBody]string name)
         {
             var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == id && i.Name == name).Include(i => i.Product)
                 .Select(i => new WishlistItemDetailsDto {
@@ -129,7 +130,8 @@ namespace GraduationProject.Controllers
         }
        
         [HttpDelete(template: "DeleteWishlist")]
-        public async Task<IActionResult> DeleteWishlistAsync([FromBody] string id,[FromBody] string name)
+        // public async Task<IActionResult> DeleteWishlistAsync([FromBody] string id,[FromBody] string name)
+        public async Task<IActionResult> DeleteWishlistAsync(string id,[FromBody] string name)
         {
             var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == id && i.Name == name)
                 .ToListAsync();
