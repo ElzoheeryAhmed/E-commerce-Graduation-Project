@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace GraduationProject.Migrations
 {
-    public partial class CartItemInitialCreate : Migration
+    public partial class CartItems_InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
