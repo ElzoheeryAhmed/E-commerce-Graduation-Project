@@ -1,16 +1,9 @@
-﻿namespace GraduationProject.Models.Dto
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace GraduationProject.Models.Dto
 {
 
-    public class CartItemDto
-    {
-
-        public string ProductId { get; set; }
-
-        public string CustomerId { get; set; }
-        public byte Quantity { get; set; }
-
-
-    }
+    
 
     public class CartItemIdentifyDto
     {
@@ -21,7 +14,13 @@
 
 
     }
+    public class CartItemDto: CartItemIdentifyDto
+    {
+        [Range(1,255)]
+        public byte Quantity { get; set; }
 
+
+    }
     public class CartItemDetailsDto
     {
        
