@@ -36,10 +36,9 @@ namespace GraduationProject.Controllers
         }
 
         [HttpGet(template:"GetContent")]
-        // public async Task<IActionResult> GetContentasync([FromBody]string id,[FromBody]string name)
-        public async Task<IActionResult> GetContentasync(string id,[FromBody]string name)
+        public async Task<IActionResult> GetContentasync([FromBody] WishlistIdentifyDto dto)
         {
-            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == id && i.Name == name).Include(i => i.Product)
+            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == dto.CustomerId && i.Name == dto.Name).Include(i => i.Product)
                 .Select(i => new WishlistItemDetailsDto {
                     ProductId = i.ProductId,
                     Title = i.Product.Title,
@@ -135,10 +134,9 @@ namespace GraduationProject.Controllers
         }
        
         [HttpDelete(template: "DeleteWishlist")]
-        // public async Task<IActionResult> DeleteWishlistAsync([FromBody] string id,[FromBody] string name)
-        public async Task<IActionResult> DeleteWishlistAsync(string id,[FromBody] string name)
+        public async Task<IActionResult> DeleteWishlistAsync([FromBody] WishlistIdentifyDto dto)
         {
-            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == id && i.Name == name)
+            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == dto.CustomerId && i.Name == dto.Name)
                 .ToListAsync();
             
             //Validation of customer wishlist combination
