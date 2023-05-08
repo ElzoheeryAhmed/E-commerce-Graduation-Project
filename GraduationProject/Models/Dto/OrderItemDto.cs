@@ -1,10 +1,13 @@
-﻿namespace GraduationProject.Models.Dto
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace GraduationProject.Models.Dto
 {
     public class OrderItemDto
     {
 
         public string ProductId { get; set; }
-
+        
+        [Range(1,255)]
         public byte Quantity { get; set; }
 
 
