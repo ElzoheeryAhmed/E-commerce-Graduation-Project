@@ -187,11 +187,10 @@ namespace GraduationProject.Controllers
            
         }
 
-        [HttpPut(template: "ShippingAddress")]
-        // public async Task<IActionResult> UpdateShippingAddressAsync([FromBody]int orderId, [FromBody] string shippingAddress)
-        public async Task<IActionResult> UpdateShippingAddressAsync(int orderId, [FromBody] string shippingAddress)
+        [HttpPut(template: "UpdateShippingAddress")]
+        public async Task<IActionResult> UpdateShippingAddressAsync([FromBody] OrderShippingDto dto)
         {
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await _context.Orders.FindAsync(dto.OrderId);
 
             if (order == null)
             {
@@ -203,7 +202,7 @@ namespace GraduationProject.Controllers
                 return BadRequest($"Order is already {order.Status} can`t change the shipping address");
             }
 
-            order.ShippingAddress = shippingAddress;
+            order.ShippingAddress = dto.ShippingAddress;
 
             //Adding to database
             _context.SaveChanges();
