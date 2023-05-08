@@ -79,7 +79,12 @@ namespace GraduationProject.Controllers
             {
                 return BadRequest(error: $"Invalid Product Id:{dto.ProductId}");
             }
-            
+
+            var isExist = await _context.WishlistItems.AnyAsync(i => ((i.CustomerId == dto.CustomerId) && (i.ProductId == dto.ProductId)&& (i.Name == dto.Name)));
+            if (isExist)
+            {
+                return Conflict("This item is exist before,only you can remove or update its quantity");
+            }
             var wishlistitem = new WishlistItem();
 
             wishlistitem.Name = dto.Name;
