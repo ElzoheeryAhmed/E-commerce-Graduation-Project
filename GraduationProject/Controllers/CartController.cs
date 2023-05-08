@@ -65,7 +65,7 @@ namespace GraduationProject.Controllers
 
             var isExist = await _context.CartItems.AnyAsync(i=>((i.CustomerId == dto.CustomerId) && (i.ProductId==dto.ProductId)));
             if (isExist) {
-                return Conflict("This item is exist before, you can remove or update its quantity");
+                return Conflict("This item is exist before,only you can remove or update its quantity");
             }
 
 
