@@ -32,4 +32,14 @@
 
     }
 
+    public class OrderShippingDto
+    {
+
+        public int OrderId { get; set; }
+
+        public string ShippingAddress { get; set; }
+
+    }
+
+
 }
