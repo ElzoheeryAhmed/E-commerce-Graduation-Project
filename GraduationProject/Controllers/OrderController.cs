@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.Linq;
+using System.Security.Cryptography;
 using GraduationProject.Data;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
@@ -150,15 +152,23 @@ namespace GraduationProject.Controllers
                 return BadRequest(error: "Invalid customer Id !");
             }
 
+            dto.OrderItems=dto.OrderItems.OrderBy(i => i.ProductId).ToList();
+            string prevProduct=string.Empty;
             //Validation of products Id
             foreach (OrderItemDto OrderItem in dto.OrderItems)
             {
+                if((prevProduct!=string.Empty )&&(OrderItem.ProductId== prevProduct))
+                {
+                    return BadRequest(error: $"Invalid duplicate Products with Id:{prevProduct}");
+
+                }
                 var isValidProduct = await _context.Products.AnyAsync(i => i.Id == OrderItem.ProductId);
                 if (!isValidProduct)
                 {
                     return BadRequest(error: $"Invalid Product Id:{OrderItem.ProductId}");
                 }
-
+                prevProduct = OrderItem.ProductId;
+               
             }
 
             //Order to orderDto mapping
