@@ -1,8 +1,14 @@
 using Microsoft.AspNetCore.Identity;
+using System.Runtime.Serialization;
 
 namespace GraduationProject.Models
 {
-	public class User : IdentityUser
+    public enum Gender : byte
+    {
+       [EnumMember(Value ="Male")] Male, [EnumMember(Value = "Female")] Female
+    }
+
+    public class User : IdentityUser
 	{
 		public string FirstName { get; set; }
 		public string LastName { get; set; }
