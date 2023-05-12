@@ -11,4 +11,12 @@
         public string Token { get; set; }
         public DateTime ExpiresOn { get; set; }
     }
+    public class UpdateModel
+    {
+        public string Message { get; set; }
+        public bool IsUpdated { get; set; }
+    }
+
+
+
 }
