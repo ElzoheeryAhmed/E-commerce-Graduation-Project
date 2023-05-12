@@ -1,8 +1,11 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using AutoMapper;
 using GraduationProject.IRepository;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
 using GraduationProject.Services.SecurityServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,8 +33,9 @@ namespace GraduationProject.Controllers
 
         }
 
-        [HttpGet]
-        [Route("users/getAllUsers")]
+       // [HttpGet]
+        //[Route("users/getAllUsers")]
+        [HttpGet(template: "getAllUsers")]
         public async Task<IActionResult> GetAllUsers()
         {
             return Ok(_mapper.Map<IList<UserCreateDto>>(await _userManager.Users.ToListAsync()));
@@ -70,12 +74,12 @@ namespace GraduationProject.Controllers
             }
         }*/
 
-        [HttpGet]
-        public async Task<IActionResult> LoginAsync([FromBody] RequestTokenDto dto)
+        [HttpGet(template:"Login")]
+        public async Task<IActionResult> LoginAsync([FromQuery] RequestTokenDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
+            
             var result = await _authService.GetTokenAsync(dto);
 
             if (!result.IsAuthenticated)
@@ -83,11 +87,30 @@ namespace GraduationProject.Controllers
 
             return Ok(new { Username=result.Username,ExpireDate=result.ExpiresOn,Roles=result.Roles,token=result.Token}); //We can  exclude the message from the result, it will be always empty 
         }
-        [HttpPost]
+        [Authorize]
+        [HttpGet(template: "GetPersonalInfo")]
+        public async Task<IActionResult> GetInfoAsync()
+        {
+            var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var usser = await _userManager.FindByNameAsync(userName);
+
+            return Ok(new
+            {
+                UserName = usser.UserName,
+                Email = usser.Email,
+                FirstName = usser.FirstName,
+                LastName = usser.LastName,
+                Gender = usser.Gender.ToString(),
+                Birthdate = usser.Birthdate,
+                PhoneNumber = usser.PhoneNumber
+            });
+        }
+
+        [HttpPost(template: "Register")]
         public async Task<IActionResult> RegisterAsync([FromBody] UserRegisterDto userdto)
         {
             
-
+            //Check for violation of the constraints that escaped from binding
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -102,6 +125,25 @@ namespace GraduationProject.Controllers
             return Ok(new { Username = result.Username, ExpireDate = result.ExpiresOn, Roles = result.Roles, token = result.Token }); //We can  exclude the message from the result, it will be always empty
 
         }
+
+        [Authorize]
+        [HttpPut(template: "UpdateInfo")]
+        public async Task<IActionResult> UpdateAsync([FromBody]UpdateUserDto dto) {
+           
+           var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+           var result = await  _authService.UpdateAsync(dto, userName);
+
+            if (!result.IsUpdated)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok("User information is successfully updated");
+        }
+
+
 
     }
 }
