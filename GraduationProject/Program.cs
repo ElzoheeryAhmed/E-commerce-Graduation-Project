@@ -12,6 +12,7 @@ using GraduationProject.Services.SecurityServices;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi.Models;
 
 Console.WriteLine("Setting up the backend server...");
 
@@ -64,7 +65,52 @@ builder.Services.AddDbContext<AppDbContext>(options => {
 builder.Services.AddIdentity<User, IdentityRole>()
 	.AddEntityFrameworkStores<AppDbContext>();
 
+//
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo 
+    {
+        Version = "v1",
+        Title = "EcommerceGraduationProject",
+        Description = "Our GraduationProject",
+        Contact = new OpenApiContact 
+        {
+            Name = "Elzoheery_Ahmed&Ahmed_Tarek",
+            Email = "Elzoheery_Tarek@ecommerce.com"
+            
+        }
+       
+    });
 
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme 
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 12345abcdef\""
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement 
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Name = "Bearer",
+                In = ParameterLocation.Header
+            },
+            new List<string>()
+        }
+    });
+});
+
+//
 //map JWT home Settings
 builder.Services.Configure<JWT>(_config.GetSection("JWT"));
 
