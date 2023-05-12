@@ -10,5 +10,7 @@
         //GetToken task
         Task<AuthModel> GetTokenAsync(RequestTokenDto dto);
 
+        Task<UpdateModel> UpdateAsync(UpdateUserDto dto, string userName);
+
     }
 }
