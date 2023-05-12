@@ -15,7 +15,7 @@ namespace GraduationProject.Services.SecurityServices
     {
         private readonly UserManager<User> _userManager;
         private readonly JWT _jwt;
-        public AuthService(UserManager<User> userManager,IOptions<JWT> jwt)
+        public AuthService(UserManager<User> userManager, IOptions<JWT> jwt)
         {
             _userManager = userManager;
             _jwt = jwt.Value;
@@ -37,9 +37,9 @@ namespace GraduationProject.Services.SecurityServices
                 Email = dto.Email,
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
-                Gender = dto.Gender,
-                Birthdate = dto.Birthdate,  
-                PhoneNumber=dto.PhoneNumber
+                Gender = dto.Gender.ToString(),
+                Birthdate = dto.Birthdate,
+                PhoneNumber = dto.PhoneNumber
             };
 
             //process of adding user to the database
@@ -136,14 +136,67 @@ namespace GraduationProject.Services.SecurityServices
                 issuer: _jwt.Issuer,
                 audience: _jwt.Audience,
                 claims: claims,
-                expires: DateTime.Now.AddHours(_jwt.DurationInHours), //return datetime object with value: currentTime+ expire period
+                expires: DateTime.Now.AddMinutes(_jwt.DurationInMinutes), //return datetime object with value: currentTime+ expire period
                 signingCredentials: signingCredentials);
 
             return jwtSecurityToken;
-            
+
 
         }
-        
 
+        public async Task<UpdateModel> UpdateAsync(UpdateUserDto dto, string userName)
+        {
+            var user = await _userManager.FindByNameAsync(userName);
+
+
+            if (dto.UserName != user.UserName)
+            {
+                //Check that  username is not exist before
+                if (await _userManager.FindByNameAsync(dto.UserName) is not null)
+                    return new UpdateModel { Message = "Username is already existed!" };
+            }
+
+            if (dto.Email != user.Email)
+            {
+                //Check that  email is not exist before
+                if (await _userManager.FindByEmailAsync(dto.Email) is not null)
+                    return new UpdateModel { Message = "Email is already existed!" };
+            }
+
+            //Updating User information
+            user.UserName = dto.UserName;
+            user.Email = dto.Email;
+            user.FirstName = dto.FirstName;
+            user.LastName = dto.LastName;
+            user.Gender = dto.Gender.ToString();
+            user.Birthdate = dto.Birthdate;
+            user.PhoneNumber = dto.PhoneNumber;
+
+
+            //process of updating user in the database
+            var result = await _userManager.UpdateAsync(user);
+
+            //if some errors occurs and user updating is not successfully completed
+            if (!result.Succeeded)
+            {
+
+                var errors = string.Empty;
+
+                foreach (var error in result.Errors)
+                    errors += $"{error.Description},";
+
+                return new UpdateModel { Message = errors, IsUpdated = false };
+            }
+            else {
+                return new UpdateModel { IsUpdated = true };
+            }
+        }
+
+
+
+
+
+
+    
     }
 }
