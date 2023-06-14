@@ -11,12 +11,21 @@
         public string Token { get; set; }
         public DateTime ExpiresOn { get; set; }
     }
-    public class UpdateModel
+    public class AlterModel: UpdateUserDto
     {
         public string Message { get; set; }
-        public bool IsUpdated { get; set; }
+        public bool IsAltered{ get; set; }
     }
 
-
+    public class UserInfo
+    {
+        public string UserName;
+        public string Email;
+        public string FirstName;
+        public string LastName;
+        public string Gender;
+        public DateTime Birthdate;
+        public string PhoneNumber;
+    }
 
 }
