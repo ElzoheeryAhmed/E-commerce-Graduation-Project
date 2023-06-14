@@ -7,16 +7,14 @@ namespace GraduationProject.Models.Dto
 
     public class CartItemIdentifyDto
     {
-
+        [Required]
         public string ProductId { get; set; }
-
-        public string CustomerId { get; set; }
 
 
     }
     public class CartItemDto: CartItemIdentifyDto
     {
-        [Range(1,255)]
+        [Required,Range(1,255)]
         public byte Quantity { get; set; }
 
 
