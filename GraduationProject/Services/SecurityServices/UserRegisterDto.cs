@@ -39,6 +39,9 @@ namespace GraduationProject.Services.SecurityServices
         [EmailAddress]
         public string Email { get; set; }
 
+        [Required]
+        [EnumDataType(typeof(Role), ErrorMessage = "Enter:0 for User, and 1 for Admin")]
+        public Role Role { get; set; }
 
         [Required]
         public string Password { get; set; }
