@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using System.Xml.Linq;
 using GraduationProject.Data;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +11,7 @@ using NetTopologySuite.Index.HPRtree;
 
 namespace GraduationProject.Controllers
 {
+    [Authorize(Roles = "User")]
     [Route("api/[controller]")]
     [ApiController]
     public class WishlistController : ControllerBase
@@ -20,26 +23,25 @@ namespace GraduationProject.Controllers
             _context = context;
         }
 
-        [HttpGet(template:"GetAll/{id}")]
-        public async Task<IActionResult> GetAllasync(string id)
+        [HttpGet(template:"GetAll")]
+        public async Task<IActionResult> GetAllasync()
         {
-            //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == id);
-            if (!isValidCustomer)
-            {
-                return BadRequest(error: "Invalid customer Id !");
-            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var wishlistsNames = await _context.WishlistItems.Where(i => i.CustomerId == id).Select(n => new { n.Name }).Distinct().ToListAsync();
+
+            var wishlistNames = await _context.WishlistItems.Where(i => i.CustomerId == userId).Select(n => new { n.Name }).Distinct().ToListAsync();
             
-           return Ok(wishlistsNames);   
+           return Ok(wishlistNames);   
         }
 
         [HttpGet(template:"GetContent")]
-        public async Task<IActionResult> GetContentasync([FromBody] WishlistIdentifyDto dto)
+        public async Task<IActionResult> GetContentasync([FromQuery] WishlistIdentifyDto dto)
         {
-            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == dto.CustomerId && i.Name == dto.Name).Include(i => i.Product)
-                .Select(i => new WishlistItemDetailsDto {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == userId && i.Name == dto.Name).Include(i => i.Product)
+                .Select(i => new  {
                     ProductId = i.ProductId,
                     Title = i.Product.Title,
                     HighResImageURLs = i.Product.HighResImageURLs,
@@ -49,7 +51,7 @@ namespace GraduationProject.Controllers
                 .ToListAsync();
 
             //Validation of customer wishlist combination
-            if (wishlistItems is null)
+            if (wishlistItems.Count ==0)
             {
                 return NotFound();
             }
@@ -64,13 +66,8 @@ namespace GraduationProject.Controllers
         [HttpPost(template:"AddItem")]  
         public async Task<IActionResult> AddItemAsync([FromBody] WishlistItemDto dto)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == dto.CustomerId);
-            if (!isValidCustomer)
-            {
-                return BadRequest(error: $"Invalid customer Id {dto.CustomerId} !");
-            }
 
             //Validation of products Id
             var isValidProduct = await _context.Products.AnyAsync(i => i.Id == dto.ProductId);
@@ -79,30 +76,33 @@ namespace GraduationProject.Controllers
                 return BadRequest(error: $"Invalid Product Id:{dto.ProductId}");
             }
 
-            var isExist = await _context.WishlistItems.AnyAsync(i => ((i.CustomerId == dto.CustomerId) && (i.ProductId == dto.ProductId)&& (i.Name == dto.Name)));
+            var isExist = await _context.WishlistItems.AnyAsync(i => ((i.CustomerId == userId) && (i.ProductId == dto.ProductId)&& (i.Name == dto.Name)));
             if (isExist)
             {
                 return Conflict("This item is exist before,only you can remove or update its quantity");
             }
-            var wishlistitem = new WishlistItem();
+            var wishlistItem = new WishlistItem();
 
-            wishlistitem.Name = dto.Name;
-            wishlistitem.CustomerId = dto.CustomerId;
-            wishlistitem.ProductId= dto.ProductId;
-            wishlistitem.Quantity=dto.Quantity; 
+            wishlistItem.Name = dto.Name;
+            wishlistItem.CustomerId = userId;
+            wishlistItem.ProductId= dto.ProductId;
+            wishlistItem.Quantity=dto.Quantity; 
 
 
 
-            await _context.WishlistItems.AddAsync(wishlistitem);
+            await _context.WishlistItems.AddAsync(wishlistItem);
             _context.SaveChanges();
 
-            return Ok(wishlistitem);
+            return Ok(new {Name = wishlistItem.Name, ProductId = wishlistItem.ProductId, Quantity = wishlistItem.Quantity });
         }
 
         [HttpPut(template: "UpdateQuantity")]
         public async Task<IActionResult> UpdateQuantityAsync([FromBody] WishlistItemDto dto)
         {
-            var wishlistItem = await _context.WishlistItems.FindAsync(dto.CustomerId, dto.ProductId, dto.Name);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            var wishlistItem = await _context.WishlistItems.FindAsync(userId, dto.ProductId, dto.Name);
             
             if(wishlistItem is null)
             {
@@ -113,14 +113,16 @@ namespace GraduationProject.Controllers
 
             _context.SaveChanges();
 
-            return Ok(wishlistItem);
+            return Ok(new { Name = wishlistItem.Name, ProductId = wishlistItem.ProductId, Quantity = wishlistItem.Quantity });
 
         }
 
         [HttpDelete(template: "DeleteItem")]
         public async Task<IActionResult> DeleteItemAsync([FromBody] WishlistItemIdentifyDto dto)
         {
-            var wishlistItem = await _context.WishlistItems.FindAsync(dto.CustomerId, dto.ProductId, dto.Name);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var wishlistItem = await _context.WishlistItems.FindAsync(userId, dto.ProductId, dto.Name);
             
             if(wishlistItem is null) {
                 return NotFound();
@@ -129,18 +131,21 @@ namespace GraduationProject.Controllers
             _context.WishlistItems.Remove(wishlistItem);
             _context.SaveChanges(); 
 
-            return Ok(wishlistItem);    
+            return Ok("Wishlist item is deleted successfully");    
 
         }
        
         [HttpDelete(template: "DeleteWishlist")]
         public async Task<IActionResult> DeleteWishlistAsync([FromBody] WishlistIdentifyDto dto)
         {
-            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == dto.CustomerId && i.Name == dto.Name)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            var wishlistItems = await _context.WishlistItems.Where(i => i.CustomerId == userId && i.Name == dto.Name)
                 .ToListAsync();
             
             //Validation of customer wishlist combination
-            if (wishlistItems is null)
+            if (wishlistItems.Count == 0)
             {
                 return NotFound();
             }
@@ -148,7 +153,7 @@ namespace GraduationProject.Controllers
             _context.WishlistItems.RemoveRange(wishlistItems);
             _context.SaveChanges();
 
-            return Ok(wishlistItems);   
+            return Ok($"Wishlist of name {dto.Name} is deleted successfully");   
 
         }
 
