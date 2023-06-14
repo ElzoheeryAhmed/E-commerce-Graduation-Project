@@ -1,4 +1,6 @@
-﻿namespace GraduationProject.Services.SecurityServices
+﻿using GraduationProject.Models;
+
+namespace GraduationProject.Services.SecurityServices
 {
     //used for dependacy injection 
     public interface IAuthService
@@ -9,8 +11,12 @@
 
         //GetToken task
         Task<AuthModel> GetTokenAsync(RequestTokenDto dto);
+        Task<UserInfo> GetInfoAsync(string userId);
 
-        Task<UpdateModel> UpdateAsync(UpdateUserDto dto, string userName);
+        Task<AlterModel> UpdateAsync(UpdateUserDto dto, string userId);
+        Task<AlterModel> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
+
+        
 
     }
 }
