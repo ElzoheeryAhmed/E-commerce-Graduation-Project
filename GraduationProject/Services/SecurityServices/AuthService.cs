@@ -7,6 +7,8 @@ using GraduationProject.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
 
 namespace GraduationProject.Services.SecurityServices
 {
@@ -48,28 +50,30 @@ namespace GraduationProject.Services.SecurityServices
             //if some errors occurs and user registration is not successfully completed
             if (!result.Succeeded)
             {
-                var errors = string.Empty;
-
-                foreach (var error in result.Errors)
-                    errors += $"{error.Description},";
-
-                return new AuthModel { Message = errors };
+                return new AuthModel { Message = SecurityHelper.parseError(result.Errors) };
             }
             //coming here means user is already registered in the database
 
+
             //now we add role to the user
-            await _userManager.AddToRoleAsync(user, "User");
+            if(dto.Role==Role.User)
+                await _userManager.AddToRoleAsync(user, "User");
+            else
+            {
+                await _userManager.AddToRoleAsync(user, "Admin");
+            }
 
             //we don`t settle with registration we will authenticate it
             //create token for the register user
             var jwtSecurityToken = await CreateJwtToken(user);
-
+            //get user roles
+            var rolesList = await _userManager.GetRolesAsync(user);
             return new AuthModel
-            {
+            {   
                 Email = user.Email,
                 ExpiresOn = jwtSecurityToken.ValidTo,
                 IsAuthenticated = true,
-                Roles = new List<string> { "User" },
+                Roles = rolesList.ToList(),
                 Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken),
                 Username = user.UserName
             };
@@ -121,10 +125,10 @@ namespace GraduationProject.Services.SecurityServices
             //set claims which is used in token generation process  
             var claims = new[]
             {
-            new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), //generate unique number in the world
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim("userId", user.Id)
+                new Claim("userName", user.UserName)
             }
             .Union(userClaims)
             .Union(roleClaims);
@@ -136,41 +140,55 @@ namespace GraduationProject.Services.SecurityServices
                 issuer: _jwt.Issuer,
                 audience: _jwt.Audience,
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(_jwt.DurationInMinutes), //return datetime object with value: currentTime+ expire period
+                expires: DateTime.Now.AddHours(_jwt.DurationInHours), //return datetime object with value: currentTime+ expire period
                 signingCredentials: signingCredentials);
 
             return jwtSecurityToken;
 
 
         }
-
-        public async Task<UpdateModel> UpdateAsync(UpdateUserDto dto, string userName)
+        public async Task<UserInfo> GetInfoAsync(string userId)
         {
-            var user = await _userManager.FindByNameAsync(userName);
+            
+            var user = await _userManager.FindByIdAsync(userId);
+
+            return new UserInfo()   {
+                UserName = user.UserName,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Gender = user.Gender.ToString(),
+                Birthdate = user.Birthdate,
+                PhoneNumber = user.PhoneNumber
+            };
+        }
+        public async Task<AlterModel> UpdateAsync(UpdateUserDto dto, string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
 
 
-            if (dto.UserName != user.UserName)
+            if ((dto.UserName is not null)&&(dto.UserName != user.UserName))
             {
                 //Check that  username is not exist before
                 if (await _userManager.FindByNameAsync(dto.UserName) is not null)
-                    return new UpdateModel { Message = "Username is already existed!" };
+                    return new AlterModel { Message = "Username is already existed!" };
             }
 
-            if (dto.Email != user.Email)
+            if ((dto.Email is not null) && (dto.Email != user.Email))
             {
                 //Check that  email is not exist before
                 if (await _userManager.FindByEmailAsync(dto.Email) is not null)
-                    return new UpdateModel { Message = "Email is already existed!" };
+                    return new AlterModel { Message = "Email is already existed!" };
             }
 
             //Updating User information
-            user.UserName = dto.UserName;
-            user.Email = dto.Email;
-            user.FirstName = dto.FirstName;
-            user.LastName = dto.LastName;
-            user.Gender = dto.Gender.ToString();
-            user.Birthdate = dto.Birthdate;
-            user.PhoneNumber = dto.PhoneNumber;
+            user.UserName = dto.UserName ?? user.UserName;
+            user.Email = dto.Email ?? user.Email;
+            user.FirstName = dto.FirstName ?? user.FirstName;
+            user.LastName = dto.LastName?? user.LastName;
+            user.Gender = dto?.Gender?.ToString()?? user.Gender;
+            user.Birthdate = dto.Birthdate??user.Birthdate;
+            user.PhoneNumber = dto.PhoneNumber??user.PhoneNumber;
 
 
             //process of updating user in the database
@@ -179,16 +197,39 @@ namespace GraduationProject.Services.SecurityServices
             //if some errors occurs and user updating is not successfully completed
             if (!result.Succeeded)
             {
-
-                var errors = string.Empty;
-
-                foreach (var error in result.Errors)
-                    errors += $"{error.Description},";
-
-                return new UpdateModel { Message = errors, IsUpdated = false };
+                return new AlterModel { Message = SecurityHelper.parseError(result.Errors), IsAltered = false };
             }
             else {
-                return new UpdateModel { IsUpdated = true };
+                 user = await _userManager.FindByIdAsync(user.Id);
+
+                return new AlterModel
+                {   IsAltered = true,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Gender = (user.Gender=="Male")?Gender.Male:Gender.Female,
+                    Birthdate = user.Birthdate,
+                    PhoneNumber = user.PhoneNumber,
+            };
+            }
+        }
+
+
+        public async Task<AlterModel> ChangePasswordAsync(string userId,string currentPassword, string newPassword)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+            if (!result.Succeeded)
+            {
+                return new AlterModel { Message = SecurityHelper.parseError(result.Errors), IsAltered = false };
+
+            }
+            else
+            {
+                return new AlterModel  { IsAltered = true };
             }
         }
 
@@ -196,7 +237,5 @@ namespace GraduationProject.Services.SecurityServices
 
 
 
-
-    
     }
 }
