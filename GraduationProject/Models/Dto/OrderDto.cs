@@ -1,11 +1,13 @@
-﻿namespace GraduationProject.Models.Dto
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace GraduationProject.Models.Dto
 {
     public class OrderDto
     {
-        
-        public string CustomerId { get; set; }
+        [Required]
         public string ShippingAddress { get; set; }
-
+        
+        [Required]
         public ICollection<OrderItemDto> OrderItems { get; set; }
         
     }
@@ -31,12 +33,14 @@
 
 
     }
-
+   
     public class OrderShippingDto
     {
 
+        [Required]
         public int OrderId { get; set; }
 
+        [Required]
         public string ShippingAddress { get; set; }
 
     }
