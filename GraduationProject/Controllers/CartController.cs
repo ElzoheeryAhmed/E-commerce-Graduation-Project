@@ -1,12 +1,15 @@
-﻿using GraduationProject.Data;
+﻿using System.Security.Claims;
+using GraduationProject.Data;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace GraduationProject.Controllers
 {
+    [Authorize(Roles ="User")]
     [Route("api/[controller]")]
     [ApiController]
     public class CartController : ControllerBase
@@ -17,21 +20,15 @@ namespace GraduationProject.Controllers
             _context = context;
         }
 
-        [HttpGet(template: "GetContent/{id}")]   
-        public async Task<IActionResult> GetContentAsync(string id)
+        [HttpGet(template: "GetContent")]   
+        public async Task<IActionResult> GetContentAsync()
         {
-            //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == id);
-            if (!isValidCustomer)
-            {
-                return BadRequest(error: "Invalid customer Id !");
-            }
-
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             var items = await _context.CartItems
-                .Where(c=>c.CustomerId==id)
+                .Where(c=>c.CustomerId== userId)
                 .Include(p => p.Product)
-                .Select(i=>new CartItemDetailsDto{
+                .Select(i=>new {
                     
                     ProductId = i.ProductId,
                     Title = i.Product.Title,
@@ -45,16 +42,12 @@ namespace GraduationProject.Controllers
             return Ok(items);
 
         }
-
+        
         [HttpPost(template:"AddItem")]
         public async Task<IActionResult> AddItemAsync( [FromBody] CartItemDto dto )
         {
-            //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == dto.CustomerId);
-            if (!isValidCustomer)
-            {
-                return BadRequest(error: "Invalid customer Id !");
-            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
 
             //Validation of products Id
             var isValidProduct = await _context.Products.AnyAsync(i => i.Id == dto.ProductId);
@@ -63,7 +56,7 @@ namespace GraduationProject.Controllers
                 return BadRequest(error: $"Invalid Product Id:{dto.ProductId}");
             }
 
-            var isExist = await _context.CartItems.AnyAsync(i=>((i.CustomerId == dto.CustomerId) && (i.ProductId==dto.ProductId)));
+            var isExist = await _context.CartItems.AnyAsync(i=>((i.CustomerId == userId) && (i.ProductId==dto.ProductId)));
             if (isExist) {
                 return Conflict("This item is exist before,only you can remove or update its quantity");
             }
@@ -71,7 +64,7 @@ namespace GraduationProject.Controllers
 
             var cartItem = new CartItem() {
                 
-                CustomerId = dto.CustomerId,
+                CustomerId = userId,
                 ProductId=dto.ProductId,
                 Quantity=dto.Quantity 
             
@@ -82,16 +75,20 @@ namespace GraduationProject.Controllers
             await _context.CartItems.AddAsync(cartItem);
             _context.SaveChanges();
 
-            return Ok(cartItem);
+            return Ok("Product is added successfully to the cart");
 
         }
-
 
         [HttpPut(template:"UpdateQuantity")]
         public async Task<IActionResult> UpdateQuantityAsync([FromBody] CartItemDto dto)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
             //Validation of CartItem
-            var item = await _context.CartItems.FindAsync(dto.CustomerId, dto.ProductId);
+            var item = await _context.CartItems
+                .Where(c => c.CustomerId == userId && c.ProductId == dto.ProductId)
+                .Include(p => p.Product).SingleOrDefaultAsync();
             if (item is null)
             {
                 return NotFound();
@@ -103,15 +100,25 @@ namespace GraduationProject.Controllers
             //Add to database 
             _context.SaveChanges();
 
-            return Ok(item); 
+            return Ok(new {
+                ProductId = item.ProductId,
+                Title = item.Product.Title,
+                HighResImageURLs = item.Product.HighResImageURLs,
+                Price = item.Product.Price,
+                Quantity = item.Quantity
+
+            }); 
         }
 
-
+        
         [HttpDelete(template: "DeleteItem")]
         public async Task<IActionResult> DeleteItemAsync([FromBody] CartItemIdentifyDto dto)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
             //Validation of CartItem
-            var item = await _context.CartItems.FindAsync(dto.CustomerId, dto.ProductId);
+            var item = await _context.CartItems.FindAsync(userId, dto.ProductId);
             if (item is  null)
             {
                 return NotFound();
@@ -121,14 +128,18 @@ namespace GraduationProject.Controllers
             _context.SaveChanges();
 
 
-            return Ok(item);
+            return Ok("CartItem is successfully deleted");
         }
 
+        [HttpDelete(template: "DeleteAll")]
+        public async Task<IActionResult> DeleteAllItemsAsync()
 
-        [HttpDelete(template: "DeleteAll/{id}")]
-        public async Task<IActionResult> DeleteAllItemsAsync(string id)
         {
-            var cartItems = await _context.CartItems.Where(i => i.CustomerId == id).ToListAsync();
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            var cartItems = await _context.CartItems.Where(i => i.CustomerId == userId).ToListAsync();
 
             //Check cart content
             if (cartItems is null)
