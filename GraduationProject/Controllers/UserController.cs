@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using AutoMapper;
@@ -19,28 +20,27 @@ namespace GraduationProject.Controllers
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-		private readonly IMapper _mapper;
-		private readonly ILogger<UserController> _logger;
+        private readonly IMapper _mapper;
+        private readonly ILogger<UserController> _logger;
         private readonly IAuthService _authService;
-		public UserController(IUnitOfWork unitOfWork, UserManager<User> userManager, SignInManager<User> signInManager, IMapper mapper, ILogger<UserController> logger, IAuthService authService)
-		{
-			_unitOfWork = unitOfWork;
-            _userManager = userManager;
-            _signInManager = signInManager;
-			_mapper = mapper;
-			_logger = logger;
+        public UserController(IUnitOfWork unitOfWork, UserManager<User> userManager, SignInManager<User> signInManager, IMapper mapper, ILogger<UserController> logger, IAuthService authService)
+        {
+           // _unitOfWork = unitOfWork;
+            //_signInManager = signInManager;
+           // _mapper = mapper;
+           // _logger = logger;
             _authService = authService;
 
         }
 
-       // [HttpGet]
+        // [HttpGet]
         //[Route("users/getAllUsers")]
-        [HttpGet(template: "getAllUsers")]
+        /*[HttpGet(template: "getAllUsers")]
         public async Task<IActionResult> GetAllUsers()
         {
             return Ok(_mapper.Map<IList<UserCreateDto>>(await _userManager.Users.ToListAsync()));
         }
-
+        */
         /*
         
 		[HttpPost]
@@ -74,42 +74,32 @@ namespace GraduationProject.Controllers
             }
         }*/
 
-        [HttpGet(template:"Login")]
+        [HttpGet(template: "Login")]
         public async Task<IActionResult> LoginAsync([FromQuery] RequestTokenDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            
+
             var result = await _authService.GetTokenAsync(dto);
 
             if (!result.IsAuthenticated)
                 return BadRequest(result.Message); //return only the error message
 
-            return Ok(new { Username=result.Username,ExpireDate=result.ExpiresOn,Roles=result.Roles,token=result.Token}); //We can  exclude the message from the result, it will be always empty 
+            return Ok(new { Username = result.Username, ExpireDate = result.ExpiresOn, Roles = result.Roles, token = result.Token }); //We can  exclude the message from the result, it will be always empty 
         }
-        [Authorize]
+        [Authorize(Roles="User , Admin")]
         [HttpGet(template: "GetPersonalInfo")]
         public async Task<IActionResult> GetInfoAsync()
         {
-            var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var usser = await _userManager.FindByNameAsync(userName);
-
-            return Ok(new
-            {
-                UserName = usser.UserName,
-                Email = usser.Email,
-                FirstName = usser.FirstName,
-                LastName = usser.LastName,
-                Gender = usser.Gender.ToString(),
-                Birthdate = usser.Birthdate,
-                PhoneNumber = usser.PhoneNumber
-            });
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userInfo = await _authService.GetInfoAsync(userId);
+            return Ok(userInfo);
         }
 
         [HttpPost(template: "Register")]
         public async Task<IActionResult> RegisterAsync([FromBody] UserRegisterDto userdto)
         {
-            
+
             //Check for violation of the constraints that escaped from binding
             if (!ModelState.IsValid)
             {
@@ -126,24 +116,41 @@ namespace GraduationProject.Controllers
 
         }
 
-        [Authorize]
+        [Authorize(Roles = "User , Admin")]
         [HttpPut(template: "UpdateInfo")]
-        public async Task<IActionResult> UpdateAsync([FromBody]UpdateUserDto dto) {
-           
-           var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        public async Task<IActionResult> UpdateAsync([FromBody] UpdateUserDto dto)
+        {
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
 
-           var result = await  _authService.UpdateAsync(dto, userName);
+            var result = await _authService.UpdateAsync(dto, userId);
 
-            if (!result.IsUpdated)
+            if (!result.IsAltered)
             {
                 return BadRequest(result.Message);
             }
 
-            return Ok("User information is successfully updated");
+            return Ok(new { UserName=result.UserName, Email=result.Email, FirstName=result.FirstName, LastName=result.LastName,Gender=result.Gender.ToString(), PhoneNumber = result.PhoneNumber, Birthdate = result.Birthdate});
         }
 
+        [Authorize(Roles = "User , Admin")]
+        [HttpPut(template: "ChangePassword")]
+        public async Task<IActionResult> ChangePasswordAsync([FromQuery][Required] string currentPassword, [FromQuery][Required] string newPassword)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            var alterModel = await _authService.ChangePasswordAsync(userId, currentPassword, newPassword);
 
+            if (alterModel.IsAltered)
+            {
+                return Ok("Password is changed successfully");
+            }
+            else
+            {
+                return BadRequest(alterModel.Message);
+            }
+
+        }
     }
 }
