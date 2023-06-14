@@ -7,6 +7,10 @@ namespace GraduationProject.Models
     {
        [EnumMember(Value ="Male")] Male, [EnumMember(Value = "Female")] Female
     }
+    public enum Role : byte
+    {
+        [EnumMember(Value = "User")] User, [EnumMember(Value = "Admin")] Admin
+    }
 
     public class User : IdentityUser
 	{
