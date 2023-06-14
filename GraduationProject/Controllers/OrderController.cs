@@ -1,15 +1,20 @@
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using GraduationProject.Controllers.Helpers;
 using GraduationProject.Data;
 using GraduationProject.Models;
 using GraduationProject.Models.Dto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace GraduationProject.Controllers
 {
+    
     [Route("api/[controller]")]
     [ApiController]
     public class OrderController : ControllerBase
@@ -19,7 +24,7 @@ namespace GraduationProject.Controllers
         {
             _context = context;
         }
-
+        [Authorize(Roles= "Admin")]
         [HttpGet(template: "GetAll")]
         public async Task<IActionResult> GetAllAsync()
         {
@@ -77,19 +82,16 @@ namespace GraduationProject.Controllers
             */
             return Ok(orders);
         }
-
-        [HttpGet(template: "GetbyId/{customerId}")]
-        public async Task<IActionResult> GetOrdersAsync(string customerId)
+        [Authorize(Roles = "User")]
+        [HttpGet(template: "GetMyOrders")]
+        public async Task<IActionResult> GetMyOrdersAsync()
         {
-            //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == customerId);
-            if (!isValidCustomer)
-            {
-                return BadRequest(error: "Invalid customer Id !");
-            }
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
 
             var orders = await _context.Orders
-                .Where(c => c.CustomerId == customerId)
+                .Where(c => c.CustomerId == userId)
                 .Include(itm => itm.OrderItems)
                 .ThenInclude(p => p.Product)
                 .Select(o => new OrderDetailsDto
@@ -141,16 +143,12 @@ namespace GraduationProject.Controllers
 
             return Ok(orders);    
         }
-
+        
+        [Authorize(Roles = "User")]
         [HttpPost(template:"AddOrder")]
         public async  Task<IActionResult> CreateOrderAsync([FromBody] OrderDto dto)
         {
-
-            //Validation of CustomerId
-            var isValidCustomer = await _context.Users.AnyAsync(i => i.Id == dto.CustomerId);
-            if(!isValidCustomer) {
-                return BadRequest(error: "Invalid customer Id !");
-            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             dto.OrderItems=dto.OrderItems.OrderBy(i => i.ProductId).ToList();
             string prevProduct=string.Empty;
@@ -172,8 +170,8 @@ namespace GraduationProject.Controllers
             }
 
             //Order to orderDto mapping
-            var order = new Order() { CustomerId = dto.CustomerId ,ShippingAddress=dto.ShippingAddress};
-            
+            var order = new Order() { CustomerId = userId , ShippingAddress=dto.ShippingAddress};
+            order.OrderItems = new List<OrderItem>();
             foreach (OrderItemDto OrderItem in dto.OrderItems) {
                 order.OrderItems.Add(new OrderItem() { ProductId=OrderItem.ProductId,Quantity= OrderItem.Quantity });
            
@@ -186,15 +184,24 @@ namespace GraduationProject.Controllers
             return Ok(order);
            
         }
-
+        
+        [Authorize(Roles = "User")]
         [HttpPut(template: "UpdateShippingAddress")]
         public async Task<IActionResult> UpdateShippingAddressAsync([FromBody] OrderShippingDto dto)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             var order = await _context.Orders.FindAsync(dto.OrderId);
 
             if (order == null)
             {
                 return NotFound("Order is not found");
+            }
+
+            //check that this order belongs to the loginned customer
+            if (order.CustomerId!= userId)
+            {
+                return Unauthorized();
             }
 
             //if order overtakes confirmed state you can`t change its states
@@ -213,8 +220,10 @@ namespace GraduationProject.Controllers
 
         }
        
-        [HttpPut(template: "Ship/{orderId}")]
-        public async Task<IActionResult> ShipOrderAsync(int orderId)
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut(template: "ChangeStatus")  ]
+        public async Task<IActionResult> ChangeStatusAsync([FromQuery][Required]int orderId, [FromQuery][Required] OrderStatus reqStatus)
         {
             var order = await _context.Orders.FindAsync(orderId);
 
@@ -223,103 +232,19 @@ namespace GraduationProject.Controllers
                 return NotFound($"Order is not found");
             }
 
-            if (order.Status != OrderStatus.Confirmed)
+            var OStatusModel= OrderHelper.changeStatus(order.Status, reqStatus);
+
+
+            if (!OStatusModel.IsSucceeded)
             {
-                return BadRequest($"Order is {order.Status.ToString()} can`t mark it shipped");
+                return BadRequest(OStatusModel.Message);
 
             }
 
-            else { order.Status = OrderStatus.Shipped; }
+            else { order.Status = OStatusModel.newStatus; }
 
             //Adding to database
             _context.SaveChanges();
-
-
-
-            return Ok(order);
-
-        }
-
-        [HttpPut(template: "Receipt/{orderId}")]
-        public async Task<IActionResult> ReceiptOrderAsync(int orderId)
-        {
-            var order = await _context.Orders.FindAsync(orderId);
-
-            if (order == null)
-            {
-                return NotFound($"Order is not found");
-            }
-            if (order.Status == OrderStatus.Receipted)
-            {
-                return BadRequest($"Order is already Receipted");
-
-            }
-            if (order.Status != OrderStatus.Shipped)
-            {
-                return BadRequest($"Order is {order.Status.ToString()} can`t mark it Receipted");
-
-            }
-
-            else { order.Status = OrderStatus.Receipted; }
-
-            //Adding to database
-            _context.SaveChanges();
-
-
-
-            return Ok(order);
-
-        }
-
-        [HttpPut(template: "Cancel/{orderId}")]
-        public async Task<IActionResult> CancelOrderAsync(int orderId)
-        {
-            var order = await _context.Orders.FindAsync(orderId);
-
-            if (order == null)
-            {
-                return NotFound($"Order is not found");
-            }
-
-            if ((order.Status == OrderStatus.Receipted) || (order.Status == OrderStatus.Returned))
-            {
-                return BadRequest($"Order is {order.Status.ToString()} can`t mark it Cancelled");
-
-            }
-
-            else { order.Status = OrderStatus.Cancelled; }
-
-            //Adding to database
-            _context.SaveChanges();
-
-
-
-            return Ok(order);
-
-        }
-
-        [HttpPut(template: "Return/{orderId}")  ]
-        public async Task<IActionResult> ReturnOrderAsync(int orderId)
-        {
-            var order = await _context.Orders.FindAsync(orderId);
-
-            if (order == null)
-            {
-                return NotFound($"Order is not found");
-            }
-
-            if (order.Status != OrderStatus.Receipted)
-            {
-                return BadRequest($"Order is {order.Status.ToString()} can`t mark it Returned");
-
-            }
-
-            else { order.Status = OrderStatus.Returned; }
-
-            //Adding to database
-            _context.SaveChanges();
-
-
 
             return Ok(order);
 
