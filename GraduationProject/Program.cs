@@ -110,7 +110,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-//
+//cors policy
+builder.Services.AddCors();
 //map JWT home Settings
 builder.Services.Configure<JWT>(_config.GetSection("JWT"));
 
@@ -145,12 +146,13 @@ Log.Information("The backend server has started.");
 Console.WriteLine("The backend server has started at: https://localhost:7185/swagger/index.html");
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) {
+//if (app.Environment.IsDevelopment()) {
 	app.UseSwagger();
 	app.UseSwaggerUI();
-}
+//}
 
 app.UseHttpsRedirection();
+app.UseCors(c=>c.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 app.UseAuthentication();
 app.UseAuthorization();
 
