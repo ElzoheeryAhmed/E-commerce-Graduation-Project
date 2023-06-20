@@ -1,3 +1,4 @@
+using System.Text;
 using System.Linq.Expressions;
 using AutoMapper;
 using GraduationProject.Controllers.FilterParameters;
@@ -20,11 +21,13 @@ namespace GraduationProject.Controllers
 		private readonly ILogger<ProductController> _logger;
 		private readonly IMapper _mapper;
 		private readonly HashSet<string> _fields = new HashSet<string>(typeof(Product).GetProperties().Select(p => p.Name));
+		private readonly IHttpClientFactory _httpClientFactory;
 
-		public ProductController(IUnitOfWork unitOfWork, ILogger<ProductController> logger, IMapper mapper) { // UserManager<User> userManager,
+		public ProductController(IUnitOfWork unitOfWork, ILogger<ProductController> logger, IMapper mapper, IHttpClientFactory httpClientFactory) {
 			_unitOfWork = unitOfWork;
 			_logger = logger;
 			_mapper = mapper;
+			_httpClientFactory = httpClientFactory;
 		}
 		
 		/// <summary>
@@ -44,8 +47,7 @@ namespace GraduationProject.Controllers
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-		public async Task<IActionResult> GetProducts([FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] ProdcutRecordFilters recordFilters, [FromQuery] string? orderBy = null)
-		{
+		public async Task<IActionResult> GetProducts([FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] ProdcutRecordFilters recordFilters, [FromQuery] string? orderBy = null) {
 			if (!string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields) && !string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
                 return BadRequest("Either use 'OnlyIncludeFields' or 'FieldsToExclude', not both.");
             }
@@ -63,7 +65,7 @@ namespace GraduationProject.Controllers
 				
 				var products = await _unitOfWork.Products.GetAllAsync( filterExpression, pagingFilter, entitiesToInclude.Count == 0, entitiesToInclude, selectExpression, orderBy: orderBy);
 				
-				// Does not return {BrandId, Reviews, Ratings}
+				// Do not return {BrandId, Reviews, Ratings}.
 				var json = JsonConvert.SerializeObject(_mapper.Map<IList<ProductDtoWithBrand>>(products), Formatting.Indented,
 					new GenericFieldBasedJsonConverter<ProductDtoWithBrand>(_fields, fieldsFilters));
 				
@@ -337,6 +339,287 @@ namespace GraduationProject.Controllers
 				
 				return StatusCode(500, "Internal Server Error. Please try again later.");
 			}
+		}
+		
+		
+		/// <summary>
+		/// Get a paged list of product recommendations similar to a specific image, with field-filtering and ordering options.
+		/// </summary>
+		/// <param name="imageFile">An image to get product with similar featrues.</param>
+		/// <param name="pagingFilter">The page number and page size.</param>
+		/// <param name="fieldsFilters">A comma-separated list of fields to include and another one for fields to exclude from the results.</param>
+		/// <param name="orderBy">A comma-separated list of fields to order the results by. The results will be sorted in ascending order by default. To sort in descending order, prefix the field name with a hyphen (-).</param>
+		/// <remarks>Fields can be filtered and/or ordered by passing a comma-separated fields.</remarks>
+		/// <remarks>Does not return the product reviews and product ratings objects.</remarks>
+		/// <returns></returns>
+		/// <response code="200">Returns a paged list of products.</response>
+		/// <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
+		/// <response code="500">If an error occurs while trying to access the database.</response>
+		[HttpPost("recommendByImage")]
+        public async Task<IActionResult> GetSimilarProducts(IFormFile imageFile, [FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] string? orderBy = null) {
+			if (imageFile == null || imageFile.Length == 0) {
+                return BadRequest("No image file provided.");
+            }
+			
+			if (!string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields) && !string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
+                return BadRequest("Either use 'OnlyIncludeFields' or 'FieldsToExclude', not both.");
+            }
+			
+			using (var memoryStream = new MemoryStream()) {
+				// Copy the image file into a memory stream
+				await imageFile.CopyToAsync(memoryStream);
+				memoryStream.Position = 0;
+				
+				// Create the HttpClient
+				var httpClient = _httpClientFactory.CreateClient();
+				
+				// Create the MultipartFormDataContent
+				var formData = new MultipartFormDataContent();
+				
+				// Create the HttpContent for the image file
+				var fileContent = new StreamContent(memoryStream);
+				fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data") {
+					Name = "file",
+					FileName = imageFile.FileName
+				};
+				
+				fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(imageFile.ContentType);
+				
+				// Add the file content to the form data
+				formData.Add(fileContent);
+				
+				// Send the POST request to the external API
+				var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/upload", formData);
+				
+				if (!response.IsSuccessStatusCode) {
+					return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'upload' API.");
+				}
+				
+				// Deserialize the response from the external API
+				var apiResponse = await response.Content.ReadAsStringAsync();
+				var productIds = JsonConvert.DeserializeObject<List<string>>(apiResponse);
+				
+				// Query the database for product information based on the retrieved product IDs
+				try {
+					// Removing the Reviews and Ratings entities from the list of entities to include, as they are not needed in this method and significantely increase the query time.
+					fieldsFilters.FieldsToExclude += ",Reviews,Ratings";
+					List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(fieldsFilters);
+					
+					List<Expression<Func<Product, bool>>> filterExpression = new List<Expression<Func<Product, bool>>>() { 
+						p => p.Status == ProductStatus.Current,
+						p => productIds.Contains(p.Id)
+					};
+					
+					// Dynamically create a select expression based on the fields to include and exclude instead of returning all the fields from the Db and filter them afterwards.
+					Expression<Func<Product, Product>> selectExpression = QueryableExtensions<Product>.EntityFieldsSelector(fieldsFilters);
+					
+					var products = await _unitOfWork.Products.GetAllAsync( filterExpression, pagingFilter, entitiesToInclude.Count == 0, entitiesToInclude, selectExpression, orderBy: orderBy);
+				
+					var json = JsonConvert.SerializeObject(_mapper.Map<IList<ProductDtoWithBrand>>(products), Formatting.Indented,
+						new GenericFieldBasedJsonConverter<ProductDtoWithBrand>(_fields, fieldsFilters));
+					
+					return Ok(json);
+				}
+				
+				catch (Exception ex) {
+					_logger.LogError(ex, $"Something went wrong when trying to access proudcts data.");
+					return StatusCode(500, "Internal Server Error. Something went wrong when trying to access proudcts data.");
+				}
+			}
+        }
+		
+		
+		/// <summary>
+		/// Get a paged list of product recommendations for a user similar to a specific product, with field-filtering and ordering options.
+		/// </summary>
+		/// <param name="id">The product id to get similar recommendations for.</param>
+		/// <param name="pagingFilter">The page number and page size.</param>
+		/// <param name="fieldsFilters">A comma-separated list of fields to include and another one for fields to exclude from the results.</param>
+		/// <param name="orderBy">A comma-separated list of fields to order the results by. The results will be sorted in ascending order by default. To sort in descending order, prefix the field name with a hyphen (-).</param>
+		/// <remarks>Fields can be filtered and/or ordered by passing a comma-separated fields.</remarks>
+		/// <remarks>Does not return the product reviews and product ratings objects.</remarks>
+		/// <returns></returns>
+		/// <response code="200">Returns a paged list of products.</response>
+		/// <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
+		/// <response code="404">If the product with the specified id is not found.</response>
+		/// <response code="500">If an error occurs while trying to access the database.</response>
+		[HttpPost("recommendByPid/{id}")]
+		public async Task<IActionResult> RecommendByPid(string id, [FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] string? orderBy = null) {
+			if (!string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields) && !string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
+                return BadRequest("Either use 'OnlyIncludeFields' or 'FieldsToExclude', not both.");
+            }
+			
+			var httpClient = _httpClientFactory.CreateClient();
+			
+			// Query the database for the product information
+			var product = await _unitOfWork.Products.ExistsAsync(p => p.Id == id);
+			
+			if (product == null)
+			{
+				return NotFound($"A product with id={id} doesn't exist.");
+			}
+			
+			// Create an anonymous object to hold the strings with their names
+            var requestBody = new
+            {
+                data = id
+            };
+
+            // Serialize the object to JSON
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+
+            // Create the StringContent with JSON as the content
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+			// Make the POST request to the API
+			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/recomenByAsin", content);
+			
+			if (!response.IsSuccessStatusCode)
+			{
+				return StatusCode((int)response.StatusCode, response.ReasonPhrase + "Error occurred while sending a request to the 'recomenByAsin' API.");
+			}
+			
+			// Deserialize the response from the external API
+			var apiResponse = await response.Content.ReadAsStringAsync();
+			
+			var productIds = JsonConvert.DeserializeObject<List<string>>(apiResponse);
+			
+			// Query the database for product information based on the retrieved product IDs
+			try {
+				// Removing the Reviews and Ratings entities from the list of entities to include, as they are not needed in this method and significantely increase the query time.
+				fieldsFilters.FieldsToExclude += ",Reviews,Ratings";
+				List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(fieldsFilters);
+				
+				List<Expression<Func<Product, bool>>> filterExpression = new List<Expression<Func<Product, bool>>>() { 
+					p => p.Status == ProductStatus.Current,
+					p => productIds.Contains(p.Id)
+				};
+				
+				// Dynamically create a select expression based on the fields to include and exclude instead of returning all the fields from the Db and filter them afterwards.
+				Expression<Func<Product, Product>> selectExpression = QueryableExtensions<Product>.EntityFieldsSelector(fieldsFilters);
+				
+				var products = await _unitOfWork.Products.GetAllAsync( filterExpression, pagingFilter, entitiesToInclude.Count == 0, entitiesToInclude, selectExpression, orderBy: orderBy);
+			
+				json = JsonConvert.SerializeObject(_mapper.Map<IList<ProductDtoWithBrand>>(products), Formatting.Indented,
+					new GenericFieldBasedJsonConverter<ProductDtoWithBrand>(_fields, fieldsFilters));
+				
+				return Ok(json);
+			}
+			
+			catch (Exception ex) {
+				_logger.LogError(ex, $"Something went wrong when trying to access proudcts data.");
+				return StatusCode(500, "Internal Server Error. Something went wrong when trying to access proudcts data.");
+			}
+		}
+		
+		
+		/// <summary>
+		/// Get a paged list of relevant product recommendations for a user, with field-filtering and ordering options.
+		/// </summary>
+		/// <param name="id">The user id to get relevant recommendations for.</param>
+		/// <param name="pagingFilter">The page number and page size.</param>
+		/// <param name="fieldsFilters">A comma-separated list of fields to include and another one for fields to exclude from the results.</param>
+		/// <param name="orderBy">A comma-separated list of fields to order the results by. The results will be sorted in ascending order by default. To sort in descending order, prefix the field name with a hyphen (-).</param>
+		/// <remarks>Fields can be filtered and/or ordered by passing a comma-separated fields.</remarks>
+		/// <remarks>Does not return the product reviews and product ratings objects.</remarks>
+		/// <returns></returns>
+		/// <response code="200">Returns a paged list of products.</response>
+		/// <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
+		/// <response code="500">If an error occurs while trying to access the database.</response>
+		[HttpPost("recommendByUid/{id}")]
+		public async Task<IActionResult> RecommendByUid(string id, [FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] string? orderBy = null) {
+			if (!string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields) && !string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
+                return BadRequest("Either use 'OnlyIncludeFields' or 'FieldsToExclude', not both.");
+            }
+			var httpClient = _httpClientFactory.CreateClient();
+			
+			// Create an anonymous object to hold the strings with their names.
+            var requestBody = new
+            {
+                data = id
+            };
+			
+            // Serialize the object to JSON.
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+			
+            // Create the StringContent with JSON as the content.
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+			
+			// Make the POST request to the API.
+			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/recomenByUser", content);
+			
+			if (!response.IsSuccessStatusCode)
+			{
+				return StatusCode((int)response.StatusCode, response.ReasonPhrase + "Error occurred while sending a request to the 'recomenByUser' API.");
+			}
+			
+			// Deserialize the response from the external API
+			var apiResponse = await response.Content.ReadAsStringAsync();
+			
+			var productIds = JsonConvert.DeserializeObject<List<string>>(apiResponse);
+			
+			// Query the database for product information based on the retrieved product IDs
+			try {
+				// Removing the Reviews and Ratings entities from the list of entities to include, as they are not needed in this method and significantely increase the query time.
+				fieldsFilters.FieldsToExclude += ",Reviews,Ratings";
+				List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(fieldsFilters);
+				
+				List<Expression<Func<Product, bool>>> filterExpression = new List<Expression<Func<Product, bool>>>() { 
+					p => p.Status == ProductStatus.Current,
+					p => productIds.Contains(p.Id)
+				};
+				
+				// Dynamically create a select expression based on the fields to include and exclude instead of returning all the fields from the Db and filter them afterwards.
+				Expression<Func<Product, Product>> selectExpression = QueryableExtensions<Product>.EntityFieldsSelector(fieldsFilters);
+				
+				var products = await _unitOfWork.Products.GetAllAsync(filterExpression, pagingFilter, entitiesToInclude.Count == 0, entitiesToInclude, selectExpression, orderBy: orderBy);
+				
+				json = JsonConvert.SerializeObject(_mapper.Map<IList<ProductDtoWithBrand>>(products), Formatting.Indented,
+					new GenericFieldBasedJsonConverter<ProductDtoWithBrand>(_fields, fieldsFilters));
+				
+				return Ok(json);
+			}
+			
+			catch (Exception ex) {
+				_logger.LogError(ex, $"Something went wrong when trying to access proudcts data.");
+				return StatusCode(500, "Internal Server Error. Something went wrong when trying to access proudcts data.");
+			}
+		}
+		
+		
+		/// <summary>
+		/// Apply sentiment analysis on a review text to get `1` if it was positive and `0` if it was negative.
+		/// </summary>
+		/// <param name="review">A string to apply sentiment analysis on.</param>
+		/// <response code="200">Returns the sentiment score.</response>
+		/// <response code="500">If an error occurs.</response>
+		[HttpPost("{review}")]
+		public async Task<IActionResult> ApplySentimentAnalysis(string review) {
+			var httpClient = _httpClientFactory.CreateClient();
+			
+			// Create an anonymous object to hold the strings with their names
+            var requestBody = new
+            {
+                data = review
+            };
+			
+            // Serialize the object to JSON
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+			
+            // Create the StringContent with JSON as the content
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+			
+			// Make the POST request to the API
+			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/sentiment", content);
+			
+			if (response.IsSuccessStatusCode) {
+				// If the response is successful, return the response content
+				string responseContent = await response.Content.ReadAsStringAsync();
+				return Ok(responseContent);
+			}
+			
+			// If the response is not successful, return an appropriate error response
+			return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'sentiment' API.");
 		}
 	}
 }
