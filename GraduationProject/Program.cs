@@ -25,6 +25,8 @@ IConfiguration _config = new ConfigurationBuilder()
 // Add services to the container.
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpClient();
+
 // Adding Serilog for logging.
 Log.Logger = new LoggerConfiguration()
 	.WriteTo.File(
