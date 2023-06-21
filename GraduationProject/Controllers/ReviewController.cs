@@ -1,3 +1,4 @@
+using System.Text;
 using System.Linq.Expressions;
 using AutoMapper;
 using GraduationProject.Controllers.FilterParameters;
@@ -15,11 +16,13 @@ namespace GraduationProject.Controllers
         private readonly IUnitOfWork _unitOfWork;
 		private readonly ILogger<ReviewController> _logger;
 		private readonly IMapper _mapper;
+		private readonly IHttpClientFactory _httpClientFactory;
 
-		public ReviewController(IUnitOfWork unitOfWork, ILogger<ReviewController> logger, IMapper mapper) {
+		public ReviewController(IUnitOfWork unitOfWork, ILogger<ReviewController> logger, IMapper mapper, IHttpClientFactory httpClientFactory) {
 			_unitOfWork = unitOfWork;
 			_logger = logger;
 			_mapper = mapper;
+			_httpClientFactory = httpClientFactory;
 		}
         
 		/// <summary>
@@ -147,7 +150,30 @@ namespace GraduationProject.Controllers
 			try {
 				var review = _mapper.Map<Review>(reviewDto);
 				
-				//TODO: Find the SentimentScore of the review.
+				// Create an anonymous object to hold the strings with their names.
+				var requestBody = new
+				{
+					data = review.ReviewText
+				};
+				
+				// Serialize the object to JSON.
+				var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+				
+				// Create the StringContent with JSON as the content.
+				var content = new StringContent(json, Encoding.UTF8, "application/json");
+				
+				// Make the POST request to the API
+				var httpClient = _httpClientFactory.CreateClient();
+				var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/sentiment", content);
+				
+				// If the response is not successful, return an appropriate error response.
+				if (!response.IsSuccessStatusCode) {
+					return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'sentiment' API.");
+				}
+				
+				string responseContent = await response.Content.ReadAsStringAsync();
+				
+				review.SentimentScore = int.Parse(responseContent);
 				
 				await _unitOfWork.Reviews.InsertAsync(review);
 				
@@ -203,6 +229,31 @@ namespace GraduationProject.Controllers
 				
 				existingReview.ReviewText = review.ReviewText;
 				
+				// Create an anonymous object to hold the strings with their names.
+				var requestBody = new
+				{
+					data = review.ReviewText
+				};
+				
+				// Serialize the object to JSON.
+				var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+				
+				// Create the StringContent with JSON as the content.
+				var content = new StringContent(json, Encoding.UTF8, "application/json");
+				
+				// Make the POST request to the API
+				var httpClient = _httpClientFactory.CreateClient();
+				var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/sentiment", content);
+				
+				// If the response is not successful, return an appropriate error response.
+				if (!response.IsSuccessStatusCode) {
+					return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'sentiment' API.");
+				}
+				
+				string responseContent = await response.Content.ReadAsStringAsync();
+				
+				existingReview.SentimentScore = int.Parse(responseContent);
+				
 				// Either use update, or don't use the selectExpression and the update will be done automatically.
 				_unitOfWork.Reviews.Update(existingReview);
 				
@@ -251,6 +302,40 @@ namespace GraduationProject.Controllers
 				
 				return StatusCode(500, "Internal Server Error.");
 			}
+		}
+		
+		/// <summary>
+		/// Apply sentiment analysis on a review text to get `1` if it was positive and `0` if it was negative.
+		/// </summary>
+		/// <param name="review">A string to apply sentiment analysis on.</param>
+		/// <response code="200">Returns the sentiment score.</response>
+		/// <response code="500">If an error occurs.</response>
+		[HttpPost("{review}")]
+		public async Task<IActionResult> ApplySentimentAnalysis(string review) {
+			// Create an anonymous object to hold the strings with their names.
+            var requestBody = new
+            {
+                data = review
+            };
+			
+            // Serialize the object to JSON.
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+			
+            // Create the StringContent with JSON as the content.
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+			
+			// Make the POST request to the API
+			var httpClient = _httpClientFactory.CreateClient();
+			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/sentiment", content);
+			
+			// If the response is not successful, return an appropriate error response.
+			if (!response.IsSuccessStatusCode) {
+				return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'sentiment' API.");
+			}
+			
+			// If the response is successful, return the response content.
+			string responseContent = await response.Content.ReadAsStringAsync();
+			return Ok(responseContent);
 		}
     }
 }
