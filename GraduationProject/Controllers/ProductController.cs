@@ -101,6 +101,9 @@ namespace GraduationProject.Controllers
 			
 			try {
 				List<string> entitiesToInclude = ProductHelper<Product>.GetNameOfEntitiesToInclude(fieldsFilters);
+
+				// Removing the Reviews and Ratings entities from the list of entities to include as they significantly increase the query time.
+				fieldsFilters.FieldsToExclude += ",Reviews,Ratings";
 				
 				// Dynamically create a select expression based on the fields to include and exclude instead of returning all the fields from the Db and filter them afterwards.
 				Expression<Func<Product, Product>> selectExpression = QueryableExtensions<Product>.EntityFieldsSelector(fieldsFilters);
