@@ -585,41 +585,5 @@ namespace GraduationProject.Controllers
 				return StatusCode(500, "Internal Server Error. Something went wrong when trying to access proudcts data.");
 			}
 		}
-		
-		
-		/// <summary>
-		/// Apply sentiment analysis on a review text to get `1` if it was positive and `0` if it was negative.
-		/// </summary>
-		/// <param name="review">A string to apply sentiment analysis on.</param>
-		/// <response code="200">Returns the sentiment score.</response>
-		/// <response code="500">If an error occurs.</response>
-		[HttpPost("{review}")]
-		public async Task<IActionResult> ApplySentimentAnalysis(string review) {
-			var httpClient = _httpClientFactory.CreateClient();
-			
-			// Create an anonymous object to hold the strings with their names
-            var requestBody = new
-            {
-                data = review
-            };
-			
-            // Serialize the object to JSON
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
-			
-            // Create the StringContent with JSON as the content
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-			
-			// Make the POST request to the API
-			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/sentiment", content);
-			
-			if (response.IsSuccessStatusCode) {
-				// If the response is successful, return the response content
-				string responseContent = await response.Content.ReadAsStringAsync();
-				return Ok(responseContent);
-			}
-			
-			// If the response is not successful, return an appropriate error response
-			return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'sentiment' API.");
-		}
 	}
 }
