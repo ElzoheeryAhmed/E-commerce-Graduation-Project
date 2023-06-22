@@ -310,8 +310,8 @@ namespace GraduationProject.Controllers
 		/// <param name="review">A string to apply sentiment analysis on.</param>
 		/// <response code="200">Returns the sentiment score.</response>
 		/// <response code="500">If an error occurs.</response>
-		[HttpPost("{review}")]
-		public async Task<IActionResult> ApplySentimentAnalysis(string review) {
+		[HttpPost]
+		public async Task<IActionResult> ApplySentimentAnalysis([FromBody] string review) {
 			// Create an anonymous object to hold the strings with their names.
             var requestBody = new
             {
