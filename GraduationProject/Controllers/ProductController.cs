@@ -446,7 +446,7 @@ namespace GraduationProject.Controllers
 		/// <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
 		/// <response code="404">If the product with the specified id is not found.</response>
 		/// <response code="500">If an error occurs while trying to access the database.</response>
-		[HttpPost("recommendByPid/{id}")]
+		[HttpGet("recommendByPid/{id}")]
 		public async Task<IActionResult> RecommendByPid(string id, [FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] string? orderBy = null) {
 			if (!string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields) && !string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
                 return BadRequest("Either use 'OnlyIncludeFields' or 'FieldsToExclude', not both.");
@@ -529,7 +529,7 @@ namespace GraduationProject.Controllers
 		/// <response code="200">Returns a paged list of products.</response>
 		/// <response code="400">If the 'OnlyIncludeFields' and 'FieldsToExclude' properties are both set.</response>
 		/// <response code="500">If an error occurs while trying to access the database.</response>
-		[HttpPost("recommendByUid/{id}")]
+		[HttpGet("recommendByUid/{id}")]
 		public async Task<IActionResult> RecommendByUid(string id, [FromQuery] PagingFilter pagingFilter, [FromQuery] ProductFieldsFilter fieldsFilters, [FromQuery] string? orderBy = null) {
 			if (!string.IsNullOrWhiteSpace(fieldsFilters.OnlySelectFields) && !string.IsNullOrWhiteSpace(fieldsFilters.FieldsToExclude)) {
                 return BadRequest("Either use 'OnlyIncludeFields' or 'FieldsToExclude', not both.");
