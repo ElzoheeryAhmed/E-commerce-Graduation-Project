@@ -337,5 +337,75 @@ namespace GraduationProject.Controllers
 			string responseContent = await response.Content.ReadAsStringAsync();
 			return Ok(responseContent);
 		}
+		
+		
+		/// <summary>
+		/// Converse with the regular chatbot.
+		/// </summary>
+		/// <param name="review">A text string message.</param>
+		/// <response code="200">Returns a response to the sent message.</response>
+		/// <response code="500">If an error occurs.</response>
+		[HttpPost("chatbots/regular/{msg}")]
+		public async Task<IActionResult> ChatWithRegularBot(string msg) {
+			// Create an anonymous object to hold the strings with their names.
+            var requestBody = new
+            {
+                data = msg
+            };
+			
+            // Serialize the object to JSON.
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+			
+            // Create the StringContent with JSON as the content.
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+			
+			// Make the POST request to the API
+			var httpClient = _httpClientFactory.CreateClient();
+			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/chat", content);
+			
+			// If the response is not successful, return an appropriate error response.
+			if (!response.IsSuccessStatusCode) {
+				return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'regular chatbot' API.");
+			}
+			
+			// If the response is successful, return the response content.
+			string responseContent = await response.Content.ReadAsStringAsync();
+			return Ok(responseContent);
+		}
+		
+		
+		/// <summary>
+		/// Converse with the customer service chatbot.
+		/// </summary>
+		/// <param name="review">A text string message.</param>
+		/// <response code="200">Returns a response to the sent message.</response>
+		/// <response code="500">If an error occurs.</response>
+		[HttpPost("chatbots/customerService/{msg}")]
+		public async Task<IActionResult> ChatWithCustomerServiceBot(string msg) {
+			// Create an anonymous object to hold the strings with their names.
+            var requestBody = new
+            {
+                data = msg
+            };
+			
+            // Serialize the object to JSON.
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestBody);
+			
+            // Create the StringContent with JSON as the content.
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+			
+			// Make the POST request to the API
+			var httpClient = _httpClientFactory.CreateClient();
+			var response = await httpClient.PostAsync("https://ai.ap.ngrok.io/customerService", content);
+			
+			// If the response is not successful, return an appropriate error response.
+			if (!response.IsSuccessStatusCode) {
+				return StatusCode((int)response.StatusCode, response.ReasonPhrase + ". The error occurred while sending a request to the 'customer service' API.");
+			}
+			
+			// If the response is successful, return the response content.
+			string responseContent = await response.Content.ReadAsStringAsync();
+			return Ok(responseContent);
+		}
     }
 }
