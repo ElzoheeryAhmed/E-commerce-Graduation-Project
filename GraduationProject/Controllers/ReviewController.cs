@@ -345,7 +345,7 @@ namespace GraduationProject.Controllers
 		/// <param name="review">A text string message.</param>
 		/// <response code="200">Returns a response to the sent message.</response>
 		/// <response code="500">If an error occurs.</response>
-		[HttpPost("chatbots/regular/{msg}")]
+		[HttpGet("chatbots/regular/{msg}")]
 		public async Task<IActionResult> ChatWithRegularBot(string msg) {
 			// Create an anonymous object to hold the strings with their names.
             var requestBody = new
@@ -380,7 +380,7 @@ namespace GraduationProject.Controllers
 		/// <param name="review">A text string message.</param>
 		/// <response code="200">Returns a response to the sent message.</response>
 		/// <response code="500">If an error occurs.</response>
-		[HttpPost("chatbots/customerService/{msg}")]
+		[HttpGet("chatbots/customerService/{msg}")]
 		public async Task<IActionResult> ChatWithCustomerServiceBot(string msg) {
 			// Create an anonymous object to hold the strings with their names.
             var requestBody = new
