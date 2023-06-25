@@ -1,4 +1,4 @@
-using System.Diagnostics;
+/*using System.Diagnostics;
 using AutoMapper;
 using EFCore.BulkExtensions;
 using GraduationProject.IRepository;
@@ -13,14 +13,14 @@ namespace GraduationProject.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class DbSeederController : ControllerBase {
+    public class DbSeederControlle : ControllerBase {
 		private readonly int QUERY_TIMEOUT = 3600;
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<User> _userManager;
-		private readonly ILogger<DbSeederController> _logger;
+		private readonly ILogger<DbSeederControlle> _logger;
 		private readonly IMapper _mapper;
         
-		public DbSeederController(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<DbSeederController> logger, IMapper mapper) {
+		public DbSeederControlle(IUnitOfWork unitOfWork, UserManager<User> userManager, ILogger<DbSeederControlle> logger, IMapper mapper) {
 			_unitOfWork = unitOfWork;
             _userManager = userManager;
 			_logger = logger;
@@ -151,3 +151,4 @@ namespace GraduationProject.Controllers
 		}
     }
 }
+*/
