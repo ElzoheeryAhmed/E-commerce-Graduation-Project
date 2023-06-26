@@ -133,7 +133,7 @@ namespace GraduationProject.Controllers
         /// <summary>
         /// Register new user
         /// </summary>
-        /// <param name="userdto">Registration information</param>
+        /// <param name="userdto">Registration information, Notice gender by default male:0</param>
         /// <returns></returns>
         /// <response code="200">Returns username, roles, expiredate and access token, user is registered successfully</response>
         /// <response code="400">Badrequest, Input information for registration violate the constraints</response>
